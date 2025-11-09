@@ -1,27 +1,35 @@
+
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { createBrowserRouter, RouterProvider, Link } from "react-router-dom"
-import LoginPage from "./pages/LoginPage"
-import SignupPage from "./pages/SignupPage"
+import { createBrowserRouter, RouterProvider } from "react-router-dom"
 import "./index.css"
 
-function Home() {
+import LoginPage from "./pages/LoginPage"
+import SignupPage from "./pages/SignupPage"
+import RequireAuth from "./components/RequireAuth"
+
+function AppPage() {
   return (
-    <div className="p-6 space-y-3">
-      <h1 className="text-2xl font-semibold">Credenciales de prueba</h1>
-      <p className="text-sm opacity-80">
-        Usa: admin@example.com / <b>admin123</b> — user@example.com / <b>user12345</b>
-      </p>
-      <div className="flex gap-4">
-        <Link className="underline" to="/login">Login</Link>
-        <Link className="underline" to="/signup">Sign up</Link>
+    <div className="flex min-h-svh items-center justify-center">
+      <div className="text-center space-y-3">
+        <h1 className="text-2xl font-semibold">Bienvenido 🎉</h1>
+        <p className="text-muted-foreground">Sesión iniciada contra la API real.</p>
       </div>
     </div>
   )
 }
 
 const router = createBrowserRouter([
-  { path: "/", element: <LoginPage /> },
+  
+  {
+    path: "/",
+    element: (
+      <RequireAuth>
+        <AppPage />
+      </RequireAuth>
+    ),
+  },
+  // Auth
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
 ])
