@@ -8,7 +8,7 @@ import "./index.css"
 function Home() {
   return (
     <div className="p-6 space-y-3">
-      <h1 className="text-2xl font-semibold">Inicio (mock)</h1>
+      <h1 className="text-2xl font-semibold">Credenciales de prueba</h1>
       <p className="text-sm opacity-80">
         Usa: admin@example.com / <b>admin123</b> — user@example.com / <b>user12345</b>
       </p>
@@ -21,7 +21,7 @@ function Home() {
 }
 
 const router = createBrowserRouter([
-  { path: "/", element: <Home /> },
+  { path: "/", element: <LoginPage /> },
   { path: "/login", element: <LoginPage /> },
   { path: "/signup", element: <SignupPage /> },
 ])
