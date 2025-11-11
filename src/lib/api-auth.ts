@@ -11,23 +11,47 @@ function setToken(t: string | null) {
 
 function pickToken(obj: any): string | null {
   if (!obj || typeof obj !== "object") return null
-  return obj.accessToken || obj.token || obj.jwt || null
+
+  return (
+    obj.accessToken ||
+    obj.token ||
+    obj.jwt ||
+    obj.access_token || 
+    (typeof obj === "string" ? obj : null)
+  )
 }
 
 async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
+      Accept: "application/json",
       "Content-Type": "application/json",
       ...(init?.headers || {}),
     },
   })
+
+
+  const ctype = res.headers.get("content-type") || ""
   let data: any = null
-  try { data = await res.json() } catch {}
+  try {
+    if (ctype.includes("application/json")) {
+      data = await res.json()
+    } else {
+     
+      const text = await res.text()
+      data = text || null
+    }
+  } catch {
+    data = null
+  }
+
   if (!res.ok) {
-    const msg = data?.message || data?.error || "Error de red"
+    
+    const msg = (data && (data.message || data.error)) || "Error de red"
     throw new Error(Array.isArray(msg) ? msg[0] : String(msg))
   }
+
   return data as T
 }
 
@@ -39,12 +63,19 @@ export async function apiRegister(email: string, password: string) {
 }
 
 export async function apiLogin(email: string, password: string) {
+
+  const body = { username: email, email, password }
   const data = await jsonFetch<any>("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(body),
   })
+
   const token = pickToken(data)
-  if (!token) throw new Error("El servidor no devolvió un token")
+  if (!token) {
+    console.warn("Respuesta de /auth/login sin token reconocible:", data)
+    throw new Error("El servidor no devolvió un token")
+  }
+
   setToken(token)
   return { accessToken: token }
 }
@@ -56,7 +87,8 @@ export function apiLogout() {
 export async function apiGetMe(): Promise<{ id?: string | number; email: string }> {
   const token = getToken()
   if (!token) throw new Error("No autenticado")
-  
+
+
   try {
     const [, payload] = token.split(".")
     if (payload) {
@@ -64,7 +96,6 @@ export async function apiGetMe(): Promise<{ id?: string | number; email: string 
       return { id: obj.sub ?? obj.id, email: obj.email }
     }
   } catch {}
-
   return { email: "usuario@autenticado" }
 }
 
