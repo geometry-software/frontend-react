@@ -29,8 +29,8 @@ export default function AppPage() {
 
       <main className="flex min-h-[calc(100svh-65px)] items-center justify-center p-6">
         <div className="text-center space-y-3">
-          <h1 className="text-2xl font-semibold">Bienvenido a SevenFox🎉</h1>
-          <p className="text-muted-foreground">iniciaste sesión</p>
+          <h1 className="text-2xl font-semibold">Welcome to SevenFox🎉</h1>
+          <p className="text-muted-foreground">You are logged in</p>
         </div>
       </main>
     </div>

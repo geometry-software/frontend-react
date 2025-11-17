@@ -16,11 +16,11 @@ export function LoginForm() {
     e.preventDefault()
     setError(null); setLoading(true)
     try {
-      if (!email || !password) throw new Error("Completa email y contraseña")
+      if (!email || !password) throw new Error("Complete email and password")
       await apiLogin(email, password)
-      nav("/app", { replace: true })
+      nav("/dashboard", { replace: true })
     } catch (e: any) {
-      setError(e.message ?? "Error de autenticación")
+      setError(e.message ?? "Authentication error")
     } finally {
       setLoading(false)
     }
@@ -33,15 +33,15 @@ export function LoginForm() {
         <Input id="email" type="email" value={email} onChange={e=>setEmail(e.target.value)} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
+        <Label htmlFor="password">Password</Label>
         <Input id="password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Button className="w-full" type="submit" disabled={loading}>
-        {loading ? "Entrando..." : "Entrar"}
+        {loading ? "Entering..." : "Enter"}
       </Button>
       <p className="text-sm text-center">
-        ¿No tienes cuenta? <Link to="/signup" className="underline">Crear cuenta</Link>
+        Don't you have an account? <Link to="/signup" className="underline">Create account</Link>
       </p>
     </form>
   )

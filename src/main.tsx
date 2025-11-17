@@ -18,7 +18,7 @@ function isAuthed() {
 }
 
 function IndexGate() {
-  return isAuthed() ? <Navigate to="/app" replace /> : <Navigate to="/login" replace />
+  return isAuthed() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
 }
 
 function NotFound() {
@@ -26,8 +26,8 @@ function NotFound() {
     <div className="flex min-h-svh items-center justify-center">
       <div className="text-center space-y-3">
         <h1 className="text-2xl font-semibold">404</h1>
-        <p className="text-muted-foreground">Página no encontrada</p>
-        <a className="underline" href="/login">Ir al login</a>
+        <p className="text-muted-foreground">Page not found</p>
+        <a className="underline" href="/login">Go to login</a>
       </div>
     </div>
   )
@@ -42,7 +42,7 @@ function RouteErrorBoundary() {
         <p className="text-muted-foreground">
           {err?.statusText || err?.message || "Algo salió mal"}
         </p>
-        <a className="underline" href="/">Volver al inicio</a>
+        <a className="underline" href="/">Back to home</a>
       </div>
     </div>
   )
@@ -50,9 +50,11 @@ function RouteErrorBoundary() {
 
 const router = createBrowserRouter(
   [
-    { path: "/", element: <IndexGate /> },
+    { path: "/", 
+      errorElement: <RouteErrorBoundary />,
+      element: <IndexGate /> },
     {
-      path: "/app",
+      path: "/dashboard",
       element: (
         <RequireAuth>
           <AppPage />
@@ -63,7 +65,6 @@ const router = createBrowserRouter(
     { path: "/signup", element: <SignupPage /> },
     { path: "*", element: <NotFound /> },
   ],
-  { errorElement: <RouteErrorBoundary /> }
 )
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
