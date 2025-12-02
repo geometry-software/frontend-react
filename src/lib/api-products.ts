@@ -1,5 +1,6 @@
 import { authHeader } from "./api-auth"
 
+
 const PRODUCTS_BASE = import.meta.env.VITE_PRODUCTS_API_URL?.replace(/\/+$/, "") || ""
 
 export type ProductDto = {
@@ -51,6 +52,22 @@ export async function createProduct(input: { name: string; price: number; descri
   return jsonFetch<ProductDto>("/products", {
     method: "POST",
     body: JSON.stringify(input),
+  })
+}
+
+export async function updateProduct(
+  id: string,
+  input: { name?: string; price?: number; description?: string }
+): Promise<ProductDto> {
+  return jsonFetch<ProductDto>(`/products/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  })
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await jsonFetch<unknown>(`/products/${id}`, {
+    method: "DELETE",
   })
 }
 
