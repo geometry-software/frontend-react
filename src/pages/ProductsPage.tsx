@@ -1,22 +1,7 @@
+
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { AppSidebar } from "../components/app-sidebar"
+import DashboardLayout from "../components/dashboard-layout"
 import { Button } from "../components/ui/button"
-import { Separator } from "../components/ui/separator"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../components/ui/breadcrumb"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "../components/ui/sidebar"
-import { apiGetMe, apiLogout } from "../lib/api-auth"
 import { DataTable, type ColumnDef } from "../components/data-table"
 import {
   fetchProducts,
@@ -49,8 +34,6 @@ import {
 type FormMode = "create" | "edit"
 
 export default function ProductsPage() {
-  const nav = useNavigate()
-  const [email, setEmail] = useState<string | null>(null)
   const [products, setProducts] = useState<ProductDto[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -72,12 +55,6 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    apiGetMe()
-      .then(me => setEmail(me.email))
-      .catch(() => setEmail(null))
-  }, [])
-
-  useEffect(() => {
     setLoading(true)
     setError(null)
     fetchProducts()
@@ -85,11 +62,6 @@ export default function ProductsPage() {
       .catch(e => setError(e.message ?? "Error al cargar productos"))
       .finally(() => setLoading(false))
   }, [])
-
-  function handleLogout() {
-    apiLogout()
-    nav("/login", { replace: true })
-  }
 
   function openCreate() {
     setFormMode("create")
@@ -241,67 +213,28 @@ export default function ProductsPage() {
   ]
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b">
-          <div className="flex items-center gap-2 px-3">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/dashboard">Panel</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Productos</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
+    <DashboardLayout pageTitle="Productos">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Listado de productos</h2>
+        <Button size="sm" className="cursor-pointer" onClick={openCreate}>
+          Agregar producto
+        </Button>
+      </div>
 
-          <div className="ml-auto flex items-center gap-3 px-4">
-            {email && (
-              <span className="text-sm text-muted-foreground">
-                Sesión: {email}
-              </span>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer"
-              onClick={handleLogout}
-            >
-              Cerrar sesión
-            </Button>
-          </div>
-        </header>
+      {error && (
+        <p className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
 
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Listado de productos</h2>
-            <Button size="sm" className="cursor-pointer" onClick={openCreate}>
-              Agregar producto
-            </Button>
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600">
-              {error}
-            </p>
-          )}
-
-          <DataTable<ProductDto>
-            data={products}
-            columns={columns}
-            searchableKeys={["name"]}
-            searchPlaceholder="Buscar producto..."
-            emptyMessage="No hay productos"
-            loading={loading}
-          />
-        </div>
-      </SidebarInset>
+      <DataTable<ProductDto>
+        data={products}
+        columns={columns}
+        searchableKeys={["name"]}
+        searchPlaceholder="Buscar producto..."
+        emptyMessage="No hay productos"
+        loading={loading}
+      />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
@@ -435,6 +368,7 @@ export default function ProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SidebarProvider>
+    </DashboardLayout>
   )
 }
+
