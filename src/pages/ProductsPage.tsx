@@ -125,9 +125,22 @@ export default function ProductsPage() {
     e.preventDefault()
     setFormError(null)
 
-    const p = parseFloat(price)
-    if (!name || !price || Number.isNaN(p)) {
-      setFormError("Nombre y precio son obligatorios, el precio debe ser numérico")
+    const trimmedName = name.trim()
+    const trimmedPrice = price.trim()
+
+    if (!trimmedName) {
+      setFormError("El nombre es obligatorio")
+      return
+    }
+
+    if (!trimmedPrice) {
+      setFormError("El precio es obligatorio")
+      return
+    }
+
+    const numericPrice = Number(trimmedPrice.replace(",", "."))
+    if (Number.isNaN(numericPrice)) {
+      setFormError("El precio debe ser numérico")
       return
     }
 
@@ -135,22 +148,24 @@ export default function ProductsPage() {
     try {
       if (formMode === "create") {
         const created = await createProduct({
-          name,
-          price: p,
-          description: description || undefined,
+          name: trimmedName,
+          price: numericPrice,
+          description: description.trim() || undefined,
         })
         setProducts(prev => [created, ...prev])
       } else if (formMode === "edit" && currentProduct) {
         const updated = await updateProduct(currentProduct._id, {
-          name,
-          price: p,
-          description: description || undefined,
+          name: trimmedName,
+          price: numericPrice,
+          description: description.trim() || undefined,
         })
         setProducts(prev =>
           prev.map(x => (x._id === updated._id ? updated : x))
         )
       }
+
       setFormOpen(false)
+      setCurrentProduct(null)
     } catch (err: any) {
       setFormError(err?.message ?? "No se pudo guardar el producto")
     } finally {
@@ -182,31 +197,44 @@ export default function ProductsPage() {
       render: row => `$${row.price.toFixed(2)}`,
     },
     {
-      key: "_id",
+      key: "actions",
       header: "Acciones",
+      headerNode: (
+        <div className="flex justify-end pr-4">
+          <div className="min-w-[220px] flex justify-center">
+            Acciones
+          </div>
+        </div>
+      ),
+      cellClassName: "text-right pr-4",
       render: row => (
-        <div className="flex justify-end gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => openDetails(row)}
-          >
-            Detalle
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => openEdit(row)}
-          >
-            Editar
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => openDelete(row)}
-          >
-            Eliminar
-          </Button>
+        <div className="flex justify-end">
+          <div className="min-w-[220px] flex justify-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => openDetails(row)}
+            >
+              Detalle
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() => openEdit(row)}
+            >
+              Editar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="cursor-pointer"
+              onClick={() => openDelete(row)}
+            >
+              Eliminar
+            </Button>
+          </div>
         </div>
       ),
     },
@@ -239,7 +267,12 @@ export default function ProductsPage() {
                 Sesión: {email}
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer"
+              onClick={handleLogout}
+            >
               Cerrar sesión
             </Button>
           </div>
@@ -248,7 +281,7 @@ export default function ProductsPage() {
         <div className="flex flex-1 flex-col gap-4 p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Listado de productos</h2>
-            <Button size="sm" onClick={openCreate}>
+            <Button size="sm" className="cursor-pointer" onClick={openCreate}>
               Agregar producto
             </Button>
           </div>
@@ -312,16 +345,17 @@ export default function ProductsPage() {
               <Button
                 type="button"
                 variant="outline"
+                className="cursor-pointer"
                 onClick={() => setFormOpen(false)}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={saving}>
-                {saving
-                  ? "Guardando..."
-                  : formMode === "create"
-                  ? "Crear"
-                  : "Guardar cambios"}
+              <Button
+                type="submit"
+                disabled={saving}
+                className="cursor-pointer"
+              >
+                {formMode === "create" ? "Crear" : "Guardar cambios"}
               </Button>
             </DialogFooter>
           </form>
@@ -363,6 +397,7 @@ export default function ProductsPage() {
           <DialogFooter>
             <Button
               type="button"
+              className="cursor-pointer"
               onClick={() => setDetailOpen(false)}
             >
               Cerrar
@@ -370,7 +405,6 @@ export default function ProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -383,6 +417,7 @@ export default function ProductsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
+              className="cursor-pointer"
               onClick={() => {
                 setDeleteOpen(false)
                 setDeleteTarget(null)
@@ -390,7 +425,11 @@ export default function ProductsPage() {
             >
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} disabled={deleting}>
+            <AlertDialogAction
+              className="cursor-pointer"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
               {deleting ? "Eliminando..." : "Eliminar"}
             </AlertDialogAction>
           </AlertDialogFooter>

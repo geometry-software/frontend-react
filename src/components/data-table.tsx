@@ -21,10 +21,13 @@ import {
 type SortDirection = "asc" | "desc"
 
 export type ColumnDef<T> = {
-  key: keyof T
+  key: keyof T | string
   header: string
   sortable?: boolean
   render?: (row: T) => React.ReactNode
+  headerClassName?: string
+  cellClassName?: string
+  headerNode?: React.ReactNode
 }
 
 type DataTableProps<T> = {
@@ -113,6 +116,7 @@ export function DataTable<T extends Record<string, any>>({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Buscador */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <Input
           className="max-w-xs"
@@ -120,74 +124,70 @@ export function DataTable<T extends Record<string, any>>({
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Filas por página</span>
-          <Select
-            value={String(pageSize)}
-            onValueChange={val => setPageSize(Number(val))}
-          >
-            <SelectTrigger className="w-[90px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {pageSizeOptions.map(opt => (
-                <SelectItem key={opt} value={String(opt)}>
-                  {opt}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              {columns.map(col => (
-                <TableHead key={String(col.key)}>
-                  {col.sortable ? (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 text-left"
-                      onClick={() => toggleSort(col.key)}
-                    >
-                      <span>{col.header}</span>
-                      {sortKey === col.key ? (
-                        sortDir === "asc" ? (
-                          <ChevronUp className="size-3" />
-                        ) : (
-                          <ChevronDown className="size-3" />
-                        )
-                      ) : null}
-                    </button>
-                  ) : (
-                    col.header
-                  )}
-                </TableHead>
-              ))}
+              {columns.map(col => {
+                const content = col.headerNode ?? col.header
+                return (
+                  <TableHead
+                    key={String(col.key)}
+                    className={col.headerClassName}
+                  >
+                    {col.sortable && !col.headerNode ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-left hover:underline cursor-pointer"
+                        onClick={() => toggleSort(col.key as keyof T)}
+                      >
+                        <span>{col.header}</span>
+                        {sortKey === col.key ? (
+                          sortDir === "asc" ? (
+                            <ChevronUp className="size-3" />
+                          ) : (
+                            <ChevronDown className="size-3" />
+                          )
+                        ) : null}
+                      </button>
+                    ) : (
+                      content
+                    )}
+                  </TableHead>
+                )
+              })}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <span className="text-sm text-muted-foreground">Cargando…</span>
+                  <span className="text-sm text-muted-foreground">
+                    Cargando…
+                  </span>
                 </TableCell>
               </TableRow>
             ) : pageData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <span className="text-sm text-muted-foreground">{emptyMessage}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {emptyMessage}
+                  </span>
                 </TableCell>
               </TableRow>
             ) : (
               pageData.map((row, idx) => (
                 <TableRow key={idx}>
                   {columns.map(col => (
-                    <TableCell key={String(col.key)}>
-                      {col.render ? col.render(row) : String(row[col.key] ?? "")}
+                    <TableCell
+                      key={String(col.key)}
+                      className={col.cellClassName}
+                    >
+                      {col.render
+                        ? col.render(row)
+                        : String(row[col.key as keyof T] ?? "")}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -198,13 +198,36 @@ export function DataTable<T extends Record<string, any>>({
       </div>
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <span className="text-sm text-muted-foreground">
-          Mostrando {from}–{to} de {total}
-        </span>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+          <span className="text-sm text-muted-foreground">
+            Mostrando {from}–{to} de {total}
+          </span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Filas por página</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={val => setPageSize(Number(val))}
+            >
+              <SelectTrigger className="w-[90px] cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map(opt => (
+                  <SelectItem key={opt} value={String(opt)}>
+                    {opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
+            className="cursor-pointer"
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
           >
@@ -216,6 +239,7 @@ export function DataTable<T extends Record<string, any>>({
           <Button
             variant="outline"
             size="sm"
+            className="cursor-pointer"
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage >= totalPages}
           >
@@ -226,3 +250,4 @@ export function DataTable<T extends Record<string, any>>({
     </div>
   )
 }
+
