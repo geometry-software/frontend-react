@@ -11,6 +11,7 @@ import "./index.css"
 import LoginPage from "./pages/LoginPage"
 import SignupPage from "./pages/SignupPage"
 import AppPage from "./pages/AppPage"
+import ProductsPage from "./pages/ProductsPage"
 import RequireAuth from "./components/RequireAuth"
 
 function isAuthed() {
@@ -26,8 +27,8 @@ function NotFound() {
     <div className="flex min-h-svh items-center justify-center">
       <div className="text-center space-y-3">
         <h1 className="text-2xl font-semibold">404</h1>
-        <p className="text-muted-foreground">Page not found</p>
-        <a className="underline" href="/login">Go to login</a>
+        <p className="text-muted-foreground">Página no encontrada</p>
+        <a className="underline" href="/login">Ir al login</a>
       </div>
     </div>
   )
@@ -42,30 +43,40 @@ function RouteErrorBoundary() {
         <p className="text-muted-foreground">
           {err?.statusText || err?.message || "Algo salió mal"}
         </p>
-        <a className="underline" href="/">Back to home</a>
+        <a className="underline" href="/">Volver al inicio</a>
       </div>
     </div>
   )
 }
 
-const router = createBrowserRouter(
-  [
-    { path: "/", 
-      errorElement: <RouteErrorBoundary />,
-      element: <IndexGate /> },
-    {
-      path: "/dashboard",
-      element: (
-        <RequireAuth>
-          <AppPage />
-        </RequireAuth>
-      ),
-    },
-    { path: "/login", element: <LoginPage /> },
-    { path: "/signup", element: <SignupPage /> },
-    { path: "*", element: <NotFound /> },
-  ],
-)
+const router = createBrowserRouter([
+  {
+    path: "/",
+    errorElement: <RouteErrorBoundary />,
+    children: [
+      { index: true, element: <IndexGate /> },
+      {
+        path: "dashboard",
+        element: (
+          <RequireAuth>
+            <AppPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "products",
+        element: (
+          <RequireAuth>
+            <ProductsPage />
+          </RequireAuth>
+        ),
+      },
+      { path: "login", element: <LoginPage /> },
+      { path: "signup", element: <SignupPage /> },
+      { path: "*", element: <NotFound /> },
+    ],
+  },
+])
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
