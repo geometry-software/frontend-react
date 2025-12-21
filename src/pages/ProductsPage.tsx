@@ -1,15 +1,6 @@
-
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import DashboardLayout from "../components/dashboard-layout"
 import { Button } from "../components/ui/button"
-import { DataTable, type ColumnDef } from "../components/data-table"
-import {
-  fetchProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  type ProductDto,
-} from "../lib/api-products"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
 import {
@@ -31,13 +22,19 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog"
 
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  type ProductDto,
+} from "../lib/api-products"
+
+import { RemoteDataTable, type RemoteColumnDef } from "../components/remote-data-table"
+import { mockListProducts, mockRemoveProduct, mockUpsertProduct } from "../lib/mock-products-backend"
+
 type FormMode = "create" | "edit"
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductDto[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<FormMode>("create")
   const [currentProduct, setCurrentProduct] = useState<ProductDto | null>(null)
@@ -53,15 +50,6 @@ export default function ProductsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ProductDto | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  useEffect(() => {
-    setLoading(true)
-    setError(null)
-    fetchProducts()
-      .then(data => setProducts(data))
-      .catch(e => setError(e.message ?? "Error al cargar productos"))
-      .finally(() => setLoading(false))
-  }, [])
 
   function openCreate() {
     setFormMode("create")
@@ -124,16 +112,14 @@ export default function ProductsPage() {
           price: numericPrice,
           description: description.trim() || undefined,
         })
-        setProducts(prev => [created, ...prev])
+        mockUpsertProduct(created)
       } else if (formMode === "edit" && currentProduct) {
         const updated = await updateProduct(currentProduct._id, {
           name: trimmedName,
           price: numericPrice,
           description: description.trim() || undefined,
         })
-        setProducts(prev =>
-          prev.map(x => (x._id === updated._id ? updated : x))
-        )
+        mockUpsertProduct(updated)
       }
 
       setFormOpen(false)
@@ -150,7 +136,7 @@ export default function ProductsPage() {
     setDeleting(true)
     try {
       await deleteProduct(deleteTarget._id)
-      setProducts(prev => prev.filter(x => x._id !== deleteTarget._id))
+      mockRemoveProduct(deleteTarget._id)
       setDeleteOpen(false)
       setDeleteTarget(null)
     } catch (err: any) {
@@ -160,7 +146,7 @@ export default function ProductsPage() {
     }
   }
 
-  const columns: ColumnDef<ProductDto>[] = [
+  const columns: RemoteColumnDef<ProductDto>[] = [
     { key: "name", header: "Nombre", sortable: true },
     {
       key: "price",
@@ -173,9 +159,7 @@ export default function ProductsPage() {
       header: "Acciones",
       headerNode: (
         <div className="flex justify-end pr-4">
-          <div className="min-w-[220px] flex justify-center">
-            Acciones
-          </div>
+          <div className="min-w-[220px] flex justify-center">Acciones</div>
         </div>
       ),
       cellClassName: "text-right pr-4",
@@ -221,19 +205,22 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600">
-          {error}
-        </p>
-      )}
-
-      <DataTable<ProductDto>
-        data={products}
+      <RemoteDataTable<ProductDto>
         columns={columns}
-        searchableKeys={["name"]}
+        queryFn={({ page, limit, search, sortBy, sortDir }) =>
+          mockListProducts({
+            page,
+            limit,
+            search,
+            sortBy,
+            sortDir,
+          })
+        }
         searchPlaceholder="Buscar producto..."
         emptyMessage="No hay productos"
-        loading={loading}
+        defaultPageSize={10}
+        defaultSortBy="name"
+        defaultSortDir="asc"
       />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -271,9 +258,7 @@ export default function ProductsPage() {
                 onChange={e => setDescription(e.target.value)}
               />
             </div>
-            {formError && (
-              <p className="text-sm text-red-600">{formError}</p>
-            )}
+            {formError && <p className="text-sm text-red-600">{formError}</p>}
             <DialogFooter>
               <Button
                 type="button"
@@ -283,11 +268,7 @@ export default function ProductsPage() {
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                className="cursor-pointer"
-              >
+              <Button type="submit" disabled={saving} className="cursor-pointer">
                 {formMode === "create" ? "Crear" : "Guardar cambios"}
               </Button>
             </DialogFooter>
@@ -338,12 +319,11 @@ export default function ProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              ¿Eliminar este producto?
-            </AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
@@ -371,4 +351,3 @@ export default function ProductsPage() {
     </DashboardLayout>
   )
 }
-
