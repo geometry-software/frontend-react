@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import DashboardLayout from "../components/dashboard-layout"
 import { Button } from "../components/ui/button"
+import { DataTable, type ColumnDef } from "../components/data-table"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
 import {
@@ -29,12 +30,17 @@ import {
   type ProductDto,
 } from "../lib/api-products"
 
-import { RemoteDataTable, type RemoteColumnDef } from "../components/remote-data-table"
-import { mockListProducts, mockRemoveProduct, mockUpsertProduct } from "../lib/mock-products-backend"
+import { useAppDispatch, useAppSelector } from "../app/hooks"
+import { fetchProductsList, setLimit, setPage, setSearch, setSort } from "../features/products/productsSlice"
+import { mockRemoveProduct, mockUpsertProduct } from "../lib/mock-products-backend"
 
 type FormMode = "create" | "edit"
 
 export default function ProductsPage() {
+  const dispatch = useAppDispatch()
+  const { items, total, page, limit, search, sortBy, sortDir, loading, error } =
+    useAppSelector(s => s.products)
+
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<FormMode>("create")
   const [currentProduct, setCurrentProduct] = useState<ProductDto | null>(null)
@@ -50,6 +56,10 @@ export default function ProductsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ProductDto | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    dispatch(fetchProductsList())
+  }, [dispatch, page, limit, search, sortBy, sortDir])
 
   function openCreate() {
     setFormMode("create")
@@ -124,6 +134,7 @@ export default function ProductsPage() {
 
       setFormOpen(false)
       setCurrentProduct(null)
+      dispatch(fetchProductsList())
     } catch (err: any) {
       setFormError(err?.message ?? "No se pudo guardar el producto")
     } finally {
@@ -139,6 +150,7 @@ export default function ProductsPage() {
       mockRemoveProduct(deleteTarget._id)
       setDeleteOpen(false)
       setDeleteTarget(null)
+      dispatch(fetchProductsList())
     } catch (err: any) {
       console.error(err)
     } finally {
@@ -146,7 +158,7 @@ export default function ProductsPage() {
     }
   }
 
-  const columns: RemoteColumnDef<ProductDto>[] = [
+  const columns: ColumnDef<ProductDto>[] = [
     { key: "name", header: "Nombre", sortable: true },
     {
       key: "price",
@@ -205,22 +217,24 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      <RemoteDataTable<ProductDto>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <DataTable<ProductDto>
+        serverSide
+        data={items}
+        total={total}
+        page={page}
+        pageSize={limit}
+        searchValue={search}
+        sort={{ key: sortBy, dir: sortDir }}
+        onSearchChange={v => dispatch(setSearch(v))}
+        onPageChange={p => dispatch(setPage(p))}
+        onPageSizeChange={n => dispatch(setLimit(n))}
+        onSortChange={s => dispatch(setSort({ key: s.key as any, dir: s.dir }))}
         columns={columns}
-        queryFn={({ page, limit, search, sortBy, sortDir }) =>
-          mockListProducts({
-            page,
-            limit,
-            search,
-            sortBy,
-            sortDir,
-          })
-        }
         searchPlaceholder="Buscar producto..."
         emptyMessage="No hay productos"
-        defaultPageSize={10}
-        defaultSortBy="name"
-        defaultSortDir="asc"
+        loading={loading}
       />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -233,6 +247,7 @@ export default function ProductsPage() {
               Completa los campos y guarda los cambios.
             </DialogDescription>
           </DialogHeader>
+
           <form className="space-y-4" onSubmit={handleSubmitForm}>
             <div className="space-y-2">
               <Label htmlFor="prod-name">Nombre</Label>
@@ -242,6 +257,7 @@ export default function ProductsPage() {
                 onChange={e => setName(e.target.value)}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="prod-price">Precio</Label>
               <Input
@@ -250,6 +266,7 @@ export default function ProductsPage() {
                 onChange={e => setPrice(e.target.value)}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="prod-desc">Descripción</Label>
               <Input
@@ -258,7 +275,9 @@ export default function ProductsPage() {
                 onChange={e => setDescription(e.target.value)}
               />
             </div>
+
             {formError && <p className="text-sm text-red-600">{formError}</p>}
+
             <DialogFooter>
               <Button
                 type="button"
@@ -281,16 +300,15 @@ export default function ProductsPage() {
           <DialogHeader>
             <DialogTitle>Detalle del producto</DialogTitle>
             <DialogDescription>
-              Información básica del producto.
+              Información del producto.
             </DialogDescription>
           </DialogHeader>
+
           {detailProduct && (
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground">ID</p>
-                <p className="text-sm font-mono break-all">
-                  {detailProduct._id}
-                </p>
+                <p className="text-sm font-mono break-all">{detailProduct._id}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Nombre</p>
@@ -302,18 +320,13 @@ export default function ProductsPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Descripción</p>
-                <p className="text-sm">
-                  {detailProduct.description || "Sin descripción"}
-                </p>
+                <p className="text-sm">{detailProduct.description || "Sin descripción"}</p>
               </div>
             </div>
           )}
+
           <DialogFooter>
-            <Button
-              type="button"
-              className="cursor-pointer"
-              onClick={() => setDetailOpen(false)}
-            >
+            <Button type="button" className="cursor-pointer" onClick={() => setDetailOpen(false)}>
               Cerrar
             </Button>
           </DialogFooter>
@@ -328,6 +341,7 @@ export default function ProductsPage() {
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
           <AlertDialogFooter>
             <AlertDialogCancel
               className="cursor-pointer"

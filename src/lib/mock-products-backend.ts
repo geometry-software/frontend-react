@@ -16,7 +16,6 @@ export type ProductsQueryResult = {
 }
 
 const KEY = "mock:products"
-const sleep = (ms: number) => new Promise(res => setTimeout(res, ms))
 
 function normalize(s: string) {
   return s.trim().toLowerCase()
@@ -24,11 +23,11 @@ function normalize(s: string) {
 
 function seed(): ProductDto[] {
   const items: ProductDto[] = [
-    { _id: "p1", name: "Gorro navideño", description: "Gorro navideño", price: 12.5 },
-    { _id: "p2", name: "Gorro para la nieve", description: "Gorro para la nieve", price: 10.0 },
-    { _id: "p3", name: "Bicicleta", description: "Bicicleta", price: 9.75 },
-    { _id: "p4", name: "Iphone", description: "Iphone", price: 15.0 },
-    { _id: "p5", name: "Cargador de batería", description: "Cargador de batería", price: 11.2 },
+    { _id: "p1", name: "Café Premium", description: "Grano selección", price: 12.5 },
+    { _id: "p2", name: "Café Dark Roast", description: "Tostado oscuro", price: 10.0 },
+    { _id: "p3", name: "Café Moka", description: "Notas chocolate", price: 9.75 },
+    { _id: "p4", name: "Café Etiopía", description: "Floral", price: 15.0 },
+    { _id: "p5", name: "Café Colombia", description: "Balanceado", price: 11.2 },
   ]
   localStorage.setItem(KEY, JSON.stringify(items))
   return items
@@ -50,8 +49,6 @@ function save(items: ProductDto[]) {
 }
 
 export async function mockListProducts(q: ProductsQuery): Promise<ProductsQueryResult> {
-  await sleep(150)
-
   const page = Math.max(1, q.page || 1)
   const limit = Math.max(1, q.limit || 10)
   const search = normalize(q.search || "")
