@@ -30,6 +30,11 @@ export type ColumnDef<T> = {
   headerNode?: React.ReactNode
 }
 
+type ControlledSort<T> = {
+  key: keyof T | null
+  dir: SortDirection
+}
+
 type DataTableProps<T> = {
   data: T[]
   columns: ColumnDef<T>[]
@@ -39,6 +44,19 @@ type DataTableProps<T> = {
   defaultPageSize?: number
   emptyMessage?: string
   loading?: boolean
+
+  serverSide?: boolean
+
+  total?: number
+  page?: number
+  pageSize?: number
+  searchValue?: string
+  sort?: ControlledSort<T>
+
+  onSearchChange?: (val: string) => void
+  onPageChange?: (page: number) => void
+  onPageSizeChange?: (pageSize: number) => void
+  onSortChange?: (sort: ControlledSort<T>) => void
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -50,18 +68,38 @@ export function DataTable<T extends Record<string, any>>({
   defaultPageSize = 10,
   emptyMessage = "No hay datos para mostrar",
   loading = false,
+
+  serverSide = false,
+
+  total: totalProp,
+  page: pageProp,
+  pageSize: pageSizeProp,
+  searchValue: searchValueProp,
+  sort: sortProp,
+
+  onSearchChange,
+  onPageChange,
+  onPageSizeChange,
+  onSortChange,
 }: DataTableProps<T>) {
-  const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(defaultPageSize)
-  const [sortKey, setSortKey] = useState<keyof T | null>(null)
-  const [sortDir, setSortDir] = useState<SortDirection>("asc")
+  const [searchState, setSearchState] = useState("")
+  const [pageState, setPageState] = useState(1)
+  const [pageSizeState, setPageSizeState] = useState(defaultPageSize)
+  const [sortKeyState, setSortKeyState] = useState<keyof T | null>(null)
+  const [sortDirState, setSortDirState] = useState<SortDirection>("asc")
+
+  const search = serverSide ? (searchValueProp ?? "") : searchState
+  const page = serverSide ? (pageProp ?? 1) : pageState
+  const pageSize = serverSide ? (pageSizeProp ?? defaultPageSize) : pageSizeState
+  const sortKey = serverSide ? (sortProp?.key ?? null) : sortKeyState
+  const sortDir = serverSide ? (sortProp?.dir ?? "asc") : sortDirState
 
   useEffect(() => {
-    setPage(1)
-  }, [search, pageSize, data])
+    if (!serverSide) setPageState(1)
+  }, [searchState, pageSizeState, data, serverSide])
 
   const filteredData = useMemo(() => {
+    if (serverSide) return data
     if (!search || !searchableKeys || searchableKeys.length === 0) return data
     const term = search.toLowerCase()
     return data.filter(row =>
@@ -71,9 +109,10 @@ export function DataTable<T extends Record<string, any>>({
         return String(value).toLowerCase().includes(term)
       })
     )
-  }, [data, search, searchableKeys])
+  }, [data, search, searchableKeys, serverSide])
 
   const sortedData = useMemo(() => {
+    if (serverSide) return filteredData
     if (!sortKey) return filteredData
     return [...filteredData].sort((a, b) => {
       const va = a[sortKey]
@@ -90,24 +129,46 @@ export function DataTable<T extends Record<string, any>>({
       if (sa > sb) return sortDir === "asc" ? 1 : -1
       return 0
     })
-  }, [filteredData, sortKey, sortDir])
+  }, [filteredData, sortKey, sortDir, serverSide])
 
-  const total = sortedData.length
+  const total = serverSide ? (totalProp ?? 0) : sortedData.length
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const currentPage = Math.min(page, totalPages)
 
   const pageData = useMemo(() => {
+    if (serverSide) return sortedData
     const start = (currentPage - 1) * pageSize
     const end = start + pageSize
     return sortedData.slice(start, end)
-  }, [sortedData, currentPage, pageSize])
+  }, [sortedData, currentPage, pageSize, serverSide])
+
+  function setSearchValue(val: string) {
+    if (serverSide) onSearchChange?.(val)
+    else setSearchState(val)
+  }
+
+  function setPageValue(next: number) {
+    if (serverSide) onPageChange?.(next)
+    else setPageState(next)
+  }
+
+  function setPageSizeValue(next: number) {
+    if (serverSide) onPageSizeChange?.(next)
+    else setPageSizeState(next)
+  }
 
   function toggleSort(key: keyof T) {
-    if (sortKey !== key) {
-      setSortKey(key)
-      setSortDir("asc")
+    if (serverSide) {
+      if (sortKey !== key) onSortChange?.({ key, dir: "asc" })
+      else onSortChange?.({ key, dir: sortDir === "asc" ? "desc" : "asc" })
+      return
+    }
+
+    if (sortKeyState !== key) {
+      setSortKeyState(key)
+      setSortDirState("asc")
     } else {
-      setSortDir(prev => (prev === "asc" ? "desc" : "asc"))
+      setSortDirState(prev => (prev === "asc" ? "desc" : "asc"))
     }
   }
 
@@ -116,13 +177,12 @@ export function DataTable<T extends Record<string, any>>({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Buscador */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <Input
           className="max-w-xs"
           placeholder={searchPlaceholder}
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => setSearchValue(e.target.value)}
         />
       </div>
 
@@ -133,10 +193,7 @@ export function DataTable<T extends Record<string, any>>({
               {columns.map(col => {
                 const content = col.headerNode ?? col.header
                 return (
-                  <TableHead
-                    key={String(col.key)}
-                    className={col.headerClassName}
-                  >
+                  <TableHead key={String(col.key)} className={col.headerClassName}>
                     {col.sortable && !col.headerNode ? (
                       <button
                         type="button"
@@ -160,34 +217,26 @@ export function DataTable<T extends Record<string, any>>({
               })}
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <span className="text-sm text-muted-foreground">
-                    Cargando…
-                  </span>
+                  <span className="text-sm text-muted-foreground">Cargando…</span>
                 </TableCell>
               </TableRow>
             ) : pageData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <span className="text-sm text-muted-foreground">
-                    {emptyMessage}
-                  </span>
+                  <span className="text-sm text-muted-foreground">{emptyMessage}</span>
                 </TableCell>
               </TableRow>
             ) : (
               pageData.map((row, idx) => (
                 <TableRow key={idx}>
                   {columns.map(col => (
-                    <TableCell
-                      key={String(col.key)}
-                      className={col.cellClassName}
-                    >
-                      {col.render
-                        ? col.render(row)
-                        : String(row[col.key as keyof T] ?? "")}
+                    <TableCell key={String(col.key)} className={col.cellClassName}>
+                      {col.render ? col.render(row) : String(row[col.key as keyof T] ?? "")}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -205,10 +254,7 @@ export function DataTable<T extends Record<string, any>>({
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Filas por página</span>
-            <Select
-              value={String(pageSize)}
-              onValueChange={val => setPageSize(Number(val))}
-            >
+            <Select value={String(pageSize)} onValueChange={val => setPageSizeValue(Number(val))}>
               <SelectTrigger className="w-[90px] cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
@@ -228,7 +274,7 @@ export function DataTable<T extends Record<string, any>>({
             variant="outline"
             size="sm"
             className="cursor-pointer"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => setPageValue(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
           >
             Anterior
@@ -240,7 +286,7 @@ export function DataTable<T extends Record<string, any>>({
             variant="outline"
             size="sm"
             className="cursor-pointer"
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            onClick={() => setPageValue(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage >= totalPages}
           >
             Siguiente

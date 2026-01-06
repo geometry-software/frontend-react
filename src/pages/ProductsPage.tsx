@@ -1,15 +1,7 @@
-
 import { useEffect, useState } from "react"
 import DashboardLayout from "../components/dashboard-layout"
 import { Button } from "../components/ui/button"
 import { DataTable, type ColumnDef } from "../components/data-table"
-import {
-  fetchProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  type ProductDto,
-} from "../lib/api-products"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
 import {
@@ -31,12 +23,23 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog"
 
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  type ProductDto,
+} from "../lib/api-products"
+
+import { useAppDispatch, useAppSelector } from "../app/hooks"
+import { fetchProductsList, setLimit, setPage, setSearch, setSort } from "../features/products/productsSlice"
+import { mockRemoveProduct, mockUpsertProduct } from "../lib/mock-products-backend"
+
 type FormMode = "create" | "edit"
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductDto[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const dispatch = useAppDispatch()
+  const { items, total, page, limit, search, sortBy, sortDir, loading, error } =
+    useAppSelector(s => s.products)
 
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<FormMode>("create")
@@ -55,13 +58,8 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    fetchProducts()
-      .then(data => setProducts(data))
-      .catch(e => setError(e.message ?? "Error al cargar productos"))
-      .finally(() => setLoading(false))
-  }, [])
+    dispatch(fetchProductsList())
+  }, [dispatch, page, limit, search, sortBy, sortDir])
 
   function openCreate() {
     setFormMode("create")
@@ -124,20 +122,19 @@ export default function ProductsPage() {
           price: numericPrice,
           description: description.trim() || undefined,
         })
-        setProducts(prev => [created, ...prev])
+        mockUpsertProduct(created)
       } else if (formMode === "edit" && currentProduct) {
         const updated = await updateProduct(currentProduct._id, {
           name: trimmedName,
           price: numericPrice,
           description: description.trim() || undefined,
         })
-        setProducts(prev =>
-          prev.map(x => (x._id === updated._id ? updated : x))
-        )
+        mockUpsertProduct(updated)
       }
 
       setFormOpen(false)
       setCurrentProduct(null)
+      dispatch(fetchProductsList())
     } catch (err: any) {
       setFormError(err?.message ?? "No se pudo guardar el producto")
     } finally {
@@ -150,9 +147,10 @@ export default function ProductsPage() {
     setDeleting(true)
     try {
       await deleteProduct(deleteTarget._id)
-      setProducts(prev => prev.filter(x => x._id !== deleteTarget._id))
+      mockRemoveProduct(deleteTarget._id)
       setDeleteOpen(false)
       setDeleteTarget(null)
+      dispatch(fetchProductsList())
     } catch (err: any) {
       console.error(err)
     } finally {
@@ -173,9 +171,7 @@ export default function ProductsPage() {
       header: "Acciones",
       headerNode: (
         <div className="flex justify-end pr-4">
-          <div className="min-w-[220px] flex justify-center">
-            Acciones
-          </div>
+          <div className="min-w-[220px] flex justify-center">Acciones</div>
         </div>
       ),
       cellClassName: "text-right pr-4",
@@ -221,16 +217,21 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <DataTable<ProductDto>
-        data={products}
+        serverSide
+        data={items}
+        total={total}
+        page={page}
+        pageSize={limit}
+        searchValue={search}
+        sort={{ key: sortBy, dir: sortDir }}
+        onSearchChange={v => dispatch(setSearch(v))}
+        onPageChange={p => dispatch(setPage(p))}
+        onPageSizeChange={n => dispatch(setLimit(n))}
+        onSortChange={s => dispatch(setSort({ key: s.key as any, dir: s.dir }))}
         columns={columns}
-        searchableKeys={["name"]}
         searchPlaceholder="Buscar producto..."
         emptyMessage="No hay productos"
         loading={loading}
@@ -246,6 +247,7 @@ export default function ProductsPage() {
               Completa los campos y guarda los cambios.
             </DialogDescription>
           </DialogHeader>
+
           <form className="space-y-4" onSubmit={handleSubmitForm}>
             <div className="space-y-2">
               <Label htmlFor="prod-name">Nombre</Label>
@@ -255,6 +257,7 @@ export default function ProductsPage() {
                 onChange={e => setName(e.target.value)}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="prod-price">Precio</Label>
               <Input
@@ -263,6 +266,7 @@ export default function ProductsPage() {
                 onChange={e => setPrice(e.target.value)}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="prod-desc">Descripción</Label>
               <Input
@@ -271,9 +275,9 @@ export default function ProductsPage() {
                 onChange={e => setDescription(e.target.value)}
               />
             </div>
-            {formError && (
-              <p className="text-sm text-red-600">{formError}</p>
-            )}
+
+            {formError && <p className="text-sm text-red-600">{formError}</p>}
+
             <DialogFooter>
               <Button
                 type="button"
@@ -283,11 +287,7 @@ export default function ProductsPage() {
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={saving}
-                className="cursor-pointer"
-              >
+              <Button type="submit" disabled={saving} className="cursor-pointer">
                 {formMode === "create" ? "Crear" : "Guardar cambios"}
               </Button>
             </DialogFooter>
@@ -300,16 +300,15 @@ export default function ProductsPage() {
           <DialogHeader>
             <DialogTitle>Detalle del producto</DialogTitle>
             <DialogDescription>
-              Información básica del producto.
+              Información del producto.
             </DialogDescription>
           </DialogHeader>
+
           {detailProduct && (
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground">ID</p>
-                <p className="text-sm font-mono break-all">
-                  {detailProduct._id}
-                </p>
+                <p className="text-sm font-mono break-all">{detailProduct._id}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Nombre</p>
@@ -321,33 +320,28 @@ export default function ProductsPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Descripción</p>
-                <p className="text-sm">
-                  {detailProduct.description || "Sin descripción"}
-                </p>
+                <p className="text-sm">{detailProduct.description || "Sin descripción"}</p>
               </div>
             </div>
           )}
+
           <DialogFooter>
-            <Button
-              type="button"
-              className="cursor-pointer"
-              onClick={() => setDetailOpen(false)}
-            >
+            <Button type="button" className="cursor-pointer" onClick={() => setDetailOpen(false)}>
               Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              ¿Eliminar este producto?
-            </AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
           <AlertDialogFooter>
             <AlertDialogCancel
               className="cursor-pointer"
@@ -371,4 +365,3 @@ export default function ProductsPage() {
     </DashboardLayout>
   )
 }
-
