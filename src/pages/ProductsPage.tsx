@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import DashboardLayout from "../components/dashboard-layout"
 import { Button } from "../components/ui/button"
 import { DataTable, type ColumnDef } from "../components/data-table"
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  type ProductDto,
+} from "../lib/api-products"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
 import {
@@ -23,22 +29,23 @@ import {
   AlertDialogTitle,
 } from "../components/ui/alert-dialog"
 
-import {
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  type ProductDto,
-} from "../lib/api-products"
-
+import ProductsFiltersSheet from "../components/products/products-filters-sheet"
 import { useAppDispatch, useAppSelector } from "../app/hooks"
-import { fetchProductsList, setLimit, setPage, setSearch, setSort } from "../features/products/productsSlice"
-import { mockRemoveProduct, mockUpsertProduct } from "../lib/mock-products-backend"
+import {
+  fetchProductsPage,
+  refreshProductsSilently,
+  setPage,
+  setLimit,
+  setSort,
+  setFilters,
+  clearFilters,
+} from "../features/products/productsSlice"
 
 type FormMode = "create" | "edit"
 
 export default function ProductsPage() {
   const dispatch = useAppDispatch()
-  const { items, total, page, limit, search, sortBy, sortDir, loading, error } =
+  const { items, total, page, limit, sortBy, sortDir, filters, loading, error } =
     useAppSelector(s => s.products)
 
   const [formOpen, setFormOpen] = useState(false)
@@ -58,8 +65,20 @@ export default function ProductsPage() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    dispatch(fetchProductsList())
-  }, [dispatch, page, limit, search, sortBy, sortDir])
+    dispatch(fetchProductsPage())
+  }, [
+    dispatch,
+    page,
+    limit,
+    sortBy,
+    sortDir,
+    filters.text,
+    filters.inName,
+    filters.inDescription,
+    filters.inPrice,
+    filters.createdAtFrom,
+    filters.createdAtTo,
+  ])
 
   function openCreate() {
     setFormMode("create")
@@ -117,24 +136,22 @@ export default function ProductsPage() {
     setSaving(true)
     try {
       if (formMode === "create") {
-        const created = await createProduct({
+        await createProduct({
           name: trimmedName,
           price: numericPrice,
           description: description.trim() || undefined,
         })
-        mockUpsertProduct(created)
       } else if (formMode === "edit" && currentProduct) {
-        const updated = await updateProduct(currentProduct._id, {
+        await updateProduct(currentProduct._id, {
           name: trimmedName,
           price: numericPrice,
           description: description.trim() || undefined,
         })
-        mockUpsertProduct(updated)
       }
 
       setFormOpen(false)
       setCurrentProduct(null)
-      dispatch(fetchProductsList())
+      dispatch(refreshProductsSilently())
     } catch (err: any) {
       setFormError(err?.message ?? "No se pudo guardar el producto")
     } finally {
@@ -147,74 +164,70 @@ export default function ProductsPage() {
     setDeleting(true)
     try {
       await deleteProduct(deleteTarget._id)
-      mockRemoveProduct(deleteTarget._id)
       setDeleteOpen(false)
       setDeleteTarget(null)
-      dispatch(fetchProductsList())
-    } catch (err: any) {
-      console.error(err)
+      dispatch(refreshProductsSilently())
     } finally {
       setDeleting(false)
     }
   }
 
-  const columns: ColumnDef<ProductDto>[] = [
-    { key: "name", header: "Nombre", sortable: true },
-    {
-      key: "price",
-      header: "Precio",
-      sortable: true,
-      render: row => `$${row.price.toFixed(2)}`,
-    },
-    {
-      key: "actions",
-      header: "Acciones",
-      headerNode: (
-        <div className="flex justify-end pr-4">
-          <div className="min-w-[220px] flex justify-center">Acciones</div>
-        </div>
-      ),
-      cellClassName: "text-right pr-4",
-      render: row => (
-        <div className="flex justify-end">
-          <div className="min-w-[220px] flex justify-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="cursor-pointer"
-              onClick={() => openDetails(row)}
-            >
-              Detalle
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="cursor-pointer"
-              onClick={() => openEdit(row)}
-            >
-              Editar
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="cursor-pointer"
-              onClick={() => openDelete(row)}
-            >
-              Eliminar
-            </Button>
+  const columns = useMemo<ColumnDef<ProductDto>[]>(() => {
+    return [
+      { key: "name", header: "Nombre", sortable: true },
+      {
+        key: "price",
+        header: "Precio",
+        sortable: true,
+        render: row => `$${row.price.toFixed(2)}`,
+      },
+      {
+        key: "actions",
+        header: "Acciones",
+        headerNode: (
+          <div className="flex justify-end pr-4">
+            <div className="min-w-[220px] flex justify-center">Acciones</div>
           </div>
-        </div>
-      ),
-    },
-  ]
+        ),
+        cellClassName: "text-right pr-4",
+        render: row => (
+          <div className="flex justify-end">
+            <div className="min-w-[220px] flex justify-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => openDetails(row)}
+              >
+                Detalle
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => openEdit(row)}
+              >
+                Editar
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="cursor-pointer"
+                onClick={() => openDelete(row)}
+              >
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        ),
+      },
+    ]
+  }, [])
 
   return (
     <DashboardLayout pageTitle="Productos">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Listado de productos</h2>
-        <Button size="sm" className="cursor-pointer" onClick={openCreate}>
-          Agregar producto
-        </Button>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -225,16 +238,25 @@ export default function ProductsPage() {
         total={total}
         page={page}
         pageSize={limit}
-        searchValue={search}
         sort={{ key: sortBy, dir: sortDir }}
-        onSearchChange={v => dispatch(setSearch(v))}
         onPageChange={p => dispatch(setPage(p))}
         onPageSizeChange={n => dispatch(setLimit(n))}
-        onSortChange={s => dispatch(setSort({ key: s.key as any, dir: s.dir }))}
+        onSortChange={s => dispatch(setSort({ sortBy: String(s.key), sortDir: s.dir }))}
         columns={columns}
-        searchPlaceholder="Buscar producto..."
         emptyMessage="No hay productos"
         loading={loading}
+        toolbarRight={
+          <div className="flex items-center gap-2">
+            <ProductsFiltersSheet
+              value={filters}
+              onApply={next => dispatch(setFilters(next))}
+              onClear={() => dispatch(clearFilters())}
+            />
+            <Button size="sm" className="cursor-pointer" onClick={openCreate}>
+              Agregar producto
+            </Button>
+          </div>
+        }
       />
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -299,9 +321,7 @@ export default function ProductsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Detalle del producto</DialogTitle>
-            <DialogDescription>
-              Información del producto.
-            </DialogDescription>
+            <DialogDescription>Información básica del producto.</DialogDescription>
           </DialogHeader>
 
           {detailProduct && (
@@ -326,7 +346,11 @@ export default function ProductsPage() {
           )}
 
           <DialogFooter>
-            <Button type="button" className="cursor-pointer" onClick={() => setDetailOpen(false)}>
+            <Button
+              type="button"
+              className="cursor-pointer"
+              onClick={() => setDetailOpen(false)}
+            >
               Cerrar
             </Button>
           </DialogFooter>
@@ -337,9 +361,7 @@ export default function ProductsPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter>
@@ -365,3 +387,5 @@ export default function ProductsPage() {
     </DashboardLayout>
   )
 }
+
+
