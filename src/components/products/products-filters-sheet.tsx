@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
-import { SlidersHorizontal, X } from "lucide-react"
+import { SlidersHorizontal } from "lucide-react"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { Checkbox } from "../ui/checkbox"
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetFooter,
   SheetHeader,
@@ -119,83 +118,89 @@ export default function ProductsFiltersSheet({ value, onApply, onClear }: Props)
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="right" className="w-[360px] sm:w-[420px]">
-        <SheetHeader className="flex-row items-center justify-between">
-          <SheetTitle>Filter Options</SheetTitle>
-          <SheetClose asChild>
-            <Button variant="ghost" size="icon" className="cursor-pointer">
-              <X className="size-4" />
-            </Button>
-          </SheetClose>
-        </SheetHeader>
+      <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
+        <div className="h-full px-6 py-6">
+          <SheetHeader className="text-left">
+            <SheetTitle className="text-lg font-semibold">
+              Filter Options
+            </SheetTitle>
+          </SheetHeader>
 
-        <div className="mt-6 space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="prod-search">Search</Label>
-            <Input
-              id="prod-search"
-              value={text}
-              placeholder="Enter keywords..."
-              onChange={e => setText(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Checkbox checked={inName} onCheckedChange={v => setInName(Boolean(v))} />
-              <span className="text-sm">Name</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Checkbox
-                checked={inDescription}
-                onCheckedChange={v => setInDescription(Boolean(v))}
-              />
-              <span className="text-sm">Description</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Checkbox checked={inPrice} onCheckedChange={v => setInPrice(Boolean(v))} />
-              <span className="text-sm">Price</span>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Si no marcas nada, la búsqueda es general.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Created At</Label>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="mt-6 space-y-8">
+            <div className="space-y-2">
+              <Label htmlFor="prod-search">Search</Label>
               <Input
-                type="date"
-                value={createdFrom}
-                onChange={e => setCreatedFrom(e.target.value)}
-              />
-              <Input
-                type="date"
-                value={createdTo}
-                onChange={e => setCreatedTo(e.target.value)}
+                id="prod-search"
+                value={text}
+                placeholder="Enter keywords..."
+                onChange={e => setText(e.target.value)}
               />
             </div>
+
+            <div className="space-y-3 rounded-lg border p-4">
+              <div className="flex items-center gap-2">
+                <Checkbox checked={inName} onCheckedChange={v => setInName(Boolean(v))} />
+                <span className="text-sm">Name</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={inDescription}
+                  onCheckedChange={v => setInDescription(Boolean(v))}
+                />
+                <span className="text-sm">Description</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox checked={inPrice} onCheckedChange={v => setInPrice(Boolean(v))} />
+                <span className="text-sm">Price</span>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Si no marcas nada, la búsqueda es general.
+              </p>
+            </div>
+
+            <div className="space-y-2 rounded-lg border p-4">
+              <Label>Created At</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="date"
+                  value={createdFrom}
+                  onChange={e => setCreatedFrom(e.target.value)}
+                />
+                <Input
+                  type="date"
+                  value={createdTo}
+                  onChange={e => setCreatedTo(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
+
+          <SheetFooter className="mt-10">
+            <div className="flex w-full justify-center gap-3">
+              <Button
+                variant="outline"
+                className="w-32 cursor-pointer"
+                onClick={handleClear}
+                disabled={!showClear}
+              >
+                Clear
+              </Button>
+              <Button
+                className="w-32 cursor-pointer"
+                disabled={!canApply}
+                onClick={handleApply}
+              >
+                Search
+              </Button>
+            </div>
+          </SheetFooter>
         </div>
-
-        <SheetFooter className="mt-8 flex-row gap-2">
-          <Button
-            variant="outline"
-            className="cursor-pointer"
-            onClick={handleClear}
-            disabled={!showClear}
-          >
-            Clear
-          </Button>
-          <Button className="cursor-pointer" disabled={!canApply} onClick={handleApply}>
-            Search
-          </Button>
-        </SheetFooter>
       </SheetContent>
     </Sheet>
   )
 }
+
 
