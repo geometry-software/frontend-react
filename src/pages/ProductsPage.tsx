@@ -33,7 +33,6 @@ import ProductsFiltersSheet from "../components/products/products-filters-sheet"
 import { useAppDispatch, useAppSelector } from "../app/hooks"
 import {
   fetchProductsPage,
-  refreshProductsSilently,
   setPage,
   setLimit,
   setSort,
@@ -42,6 +41,13 @@ import {
 } from "../features/products/productsSlice"
 
 type FormMode = "create" | "edit"
+
+function fmtDate(iso?: string) {
+  if (!iso) return "-"
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return "-"
+  return d.toLocaleDateString()
+}
 
 export default function ProductsPage() {
   const dispatch = useAppDispatch()
@@ -66,19 +72,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     dispatch(fetchProductsPage())
-  }, [
-    dispatch,
-    page,
-    limit,
-    sortBy,
-    sortDir,
-    filters.text,
-    filters.inName,
-    filters.inDescription,
-    filters.inPrice,
-    filters.createdAtFrom,
-    filters.createdAtTo,
-  ])
+  }, [dispatch, page, limit, sortBy, sortDir, filters])
 
   function openCreate() {
     setFormMode("create")
@@ -151,7 +145,7 @@ export default function ProductsPage() {
 
       setFormOpen(false)
       setCurrentProduct(null)
-      dispatch(refreshProductsSilently())
+      dispatch(fetchProductsPage())
     } catch (err: any) {
       setFormError(err?.message ?? "No se pudo guardar el producto")
     } finally {
@@ -166,20 +160,26 @@ export default function ProductsPage() {
       await deleteProduct(deleteTarget._id)
       setDeleteOpen(false)
       setDeleteTarget(null)
-      dispatch(refreshProductsSilently())
+      dispatch(fetchProductsPage())
     } finally {
       setDeleting(false)
     }
   }
 
-  const columns = useMemo<ColumnDef<ProductDto>[]>(() => {
-    return [
+  const columns: ColumnDef<ProductDto>[] = useMemo(
+    () => [
       { key: "name", header: "Nombre", sortable: true },
       {
         key: "price",
         header: "Precio",
         sortable: true,
         render: row => `$${row.price.toFixed(2)}`,
+      },
+      {
+        key: "updatedAt",
+        header: "Actualizado",
+        sortable: true,
+        render: row => fmtDate(row.updatedAt),
       },
       {
         key: "actions",
@@ -221,15 +221,12 @@ export default function ProductsPage() {
           </div>
         ),
       },
-    ]
-  }, [])
+    ],
+    []
+  )
 
   return (
     <DashboardLayout pageTitle="Productos">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Listado de productos</h2>
-      </div>
-
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <DataTable<ProductDto>
@@ -241,7 +238,7 @@ export default function ProductsPage() {
         sort={{ key: sortBy, dir: sortDir }}
         onPageChange={p => dispatch(setPage(p))}
         onPageSizeChange={n => dispatch(setLimit(n))}
-        onSortChange={s => dispatch(setSort({ sortBy: String(s.key), sortDir: s.dir }))}
+        onSortChange={s => dispatch(setSort({ sortBy: s.key, sortDir: s.dir }))}
         columns={columns}
         emptyMessage="No hay productos"
         loading={loading}
@@ -269,7 +266,6 @@ export default function ProductsPage() {
               Completa los campos y guarda los cambios.
             </DialogDescription>
           </DialogHeader>
-
           <form className="space-y-4" onSubmit={handleSubmitForm}>
             <div className="space-y-2">
               <Label htmlFor="prod-name">Nombre</Label>
@@ -279,7 +275,6 @@ export default function ProductsPage() {
                 onChange={e => setName(e.target.value)}
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="prod-price">Precio</Label>
               <Input
@@ -288,7 +283,6 @@ export default function ProductsPage() {
                 onChange={e => setPrice(e.target.value)}
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="prod-desc">Descripción</Label>
               <Input
@@ -297,9 +291,7 @@ export default function ProductsPage() {
                 onChange={e => setDescription(e.target.value)}
               />
             </div>
-
             {formError && <p className="text-sm text-red-600">{formError}</p>}
-
             <DialogFooter>
               <Button
                 type="button"
@@ -323,7 +315,6 @@ export default function ProductsPage() {
             <DialogTitle>Detalle del producto</DialogTitle>
             <DialogDescription>Información básica del producto.</DialogDescription>
           </DialogHeader>
-
           {detailProduct && (
             <div className="space-y-3">
               <div>
@@ -342,15 +333,14 @@ export default function ProductsPage() {
                 <p className="text-xs text-muted-foreground">Descripción</p>
                 <p className="text-sm">{detailProduct.description || "Sin descripción"}</p>
               </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Actualizado</p>
+                <p className="text-sm">{fmtDate(detailProduct.updatedAt)}</p>
+              </div>
             </div>
           )}
-
           <DialogFooter>
-            <Button
-              type="button"
-              className="cursor-pointer"
-              onClick={() => setDetailOpen(false)}
-            >
+            <Button type="button" className="cursor-pointer" onClick={() => setDetailOpen(false)}>
               Cerrar
             </Button>
           </DialogFooter>
@@ -363,7 +353,6 @@ export default function ProductsPage() {
             <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
             <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
           </AlertDialogHeader>
-
           <AlertDialogFooter>
             <AlertDialogCancel
               className="cursor-pointer"

@@ -69,17 +69,23 @@ function normalizeListResponse(raw: any): { items: ProductDto[]; total: number }
       (Array.isArray(raw.payload) && raw.payload) ||
       []
 
+    const metaTotal =
+      (raw.meta && typeof raw.meta.total === "number" && raw.meta.total) ||
+      (raw.meta && typeof raw.meta.count === "number" && raw.meta.count) ||
+      null
+
     const total =
       (typeof raw.total === "number" && raw.total) ||
       (typeof raw.count === "number" && raw.count) ||
       (typeof raw.totalCount === "number" && raw.totalCount) ||
-      items.length
+      (metaTotal ?? items.length)
 
     return { items, total }
   }
 
   return { items: [], total: 0 }
 }
+
 
 export async function fetchProducts(query: ProductsQuery) {
   const qs = buildQueryString(query)

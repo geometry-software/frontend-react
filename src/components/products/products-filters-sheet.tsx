@@ -12,21 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../ui/sheet"
-
-export type ProductsFilterMode = {
-  text: string
-  inName: boolean
-  inDescription: boolean
-  inPrice: boolean
-  createdAtFrom: string
-  createdAtTo: string
-}
-
-type Props = {
-  value: ProductsFilterMode
-  onApply: (next: ProductsFilterMode) => void
-  onClear: () => void
-}
+import type { FilterProps, ProductsFilters } from "../../types/filters"
 
 function isoStartOfDay(dateOnly: string) {
   if (!dateOnly) return ""
@@ -49,14 +35,17 @@ function toDateOnly(iso: string) {
   return d.toISOString().slice(0, 10)
 }
 
-export default function ProductsFiltersSheet({ value, onApply, onClear }: Props) {
+export default function ProductsFiltersSheet({
+  value,
+  onApply,
+  onClear,
+}: FilterProps<ProductsFilters>) {
   const [open, setOpen] = useState(false)
 
   const [text, setText] = useState(value.text ?? "")
   const [inName, setInName] = useState(!!value.inName)
   const [inDescription, setInDescription] = useState(!!value.inDescription)
   const [inPrice, setInPrice] = useState(!!value.inPrice)
-
   const [createdFrom, setCreatedFrom] = useState("")
   const [createdTo, setCreatedTo] = useState("")
 
@@ -68,12 +57,6 @@ export default function ProductsFiltersSheet({ value, onApply, onClear }: Props)
     setCreatedFrom(toDateOnly(value.createdAtFrom))
     setCreatedTo(toDateOnly(value.createdAtTo))
   }, [value])
-
-  const canApply = useMemo(() => {
-    const hasText = !!text.trim()
-    const hasDates = !!createdFrom || !!createdTo
-    return hasText || hasDates
-  }, [text, createdFrom, createdTo])
 
   const showClear = useMemo(() => {
     return (
@@ -88,6 +71,7 @@ export default function ProductsFiltersSheet({ value, onApply, onClear }: Props)
 
   function handleApply() {
     onApply({
+      ...value,
       text: text.trim(),
       inName,
       inDescription,
@@ -99,12 +83,6 @@ export default function ProductsFiltersSheet({ value, onApply, onClear }: Props)
   }
 
   function handleClear() {
-    setText("")
-    setInName(false)
-    setInDescription(false)
-    setInPrice(false)
-    setCreatedFrom("")
-    setCreatedTo("")
     onClear()
     setOpen(false)
   }
@@ -121,12 +99,10 @@ export default function ProductsFiltersSheet({ value, onApply, onClear }: Props)
       <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <div className="h-full px-6 py-6">
           <SheetHeader className="text-left">
-            <SheetTitle className="text-lg font-semibold">
-              Filter Options
-            </SheetTitle>
+            <SheetTitle className="text-lg font-semibold">Filter Options</SheetTitle>
           </SheetHeader>
 
-          <div className="mt-6 space-y-8">
+          <div className="mt-6 space-y-6">
             <div className="space-y-2">
               <Label htmlFor="prod-search">Search</Label>
               <Input
@@ -157,7 +133,7 @@ export default function ProductsFiltersSheet({ value, onApply, onClear }: Props)
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Si no marcas nada, la búsqueda es general.
+                Si no marcas nada, la búsqueda será general (backend).
               </p>
             </div>
 
@@ -178,24 +154,20 @@ export default function ProductsFiltersSheet({ value, onApply, onClear }: Props)
             </div>
           </div>
 
-          <SheetFooter className="mt-10">
-            <div className="flex w-full justify-center gap-3">
-              <Button
-                variant="outline"
-                className="w-32 cursor-pointer"
-                onClick={handleClear}
-                disabled={!showClear}
-              >
-                Clear
-              </Button>
-              <Button
-                className="w-32 cursor-pointer"
-                disabled={!canApply}
-                onClick={handleApply}
-              >
-                Search
-              </Button>
-            </div>
+          <SheetFooter className="mt-6 flex flex-row items-center justify-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="cursor-pointer"
+              onClick={handleClear}
+              disabled={!showClear}
+            >
+              Clear
+            </Button>
+
+            <Button type="button" className="cursor-pointer" onClick={handleApply}>
+              Search
+            </Button>
           </SheetFooter>
         </div>
       </SheetContent>

@@ -3,17 +3,7 @@ import type { PayloadAction } from "@reduxjs/toolkit"
 import type { RootState } from "../../app/store"
 import { fetchProducts } from "../../lib/api-products"
 import type { ProductDto } from "../../lib/api-products"
-
-export type ProductsFilters = {
-  text: string
-  inName: boolean
-  inDescription: boolean
-  inPrice: boolean
-  createdAtFrom: string
-  createdAtTo: string
-}
-
-type SortDir = "asc" | "desc"
+import type { ProductsFilters, SortDir } from "../../types/filters"
 
 type ProductsState = {
   items: ProductDto[]
@@ -24,7 +14,6 @@ type ProductsState = {
   sortDir: SortDir
   filters: ProductsFilters
   loading: boolean
-  refreshing: boolean
   error: string | null
 }
 
@@ -44,15 +33,15 @@ const initialState: ProductsState = {
     createdAtTo: "",
   },
   loading: false,
-  refreshing: false,
   error: null,
 }
 
 function buildSearchParams(filters: ProductsFilters) {
-  const text = (filters.text || "").trim()
+  const textRaw = (filters.text || "").trim()
+  const text = textRaw.toLowerCase()
 
-  const createdAtFrom = filters.createdAtFrom || ""
-  const createdAtTo = filters.createdAtTo || ""
+  const createdAtFrom = (filters.createdAtFrom || "").trim()
+  const createdAtTo = (filters.createdAtTo || "").trim()
 
   const base: Record<string, string> = {}
   if (createdAtFrom) base.createdAtFrom = createdAtFrom
@@ -60,15 +49,19 @@ function buildSearchParams(filters: ProductsFilters) {
 
   if (!text) return base
 
-  const anyChecked = !!filters.inName || !!filters.inDescription || !!filters.inPrice
+  const anyChecked = filters.inName || filters.inDescription || filters.inPrice
 
   if (!anyChecked) {
     return { ...base, query: text }
   }
 
-  if (filters.inName && !filters.inDescription && !filters.inPrice) {
-    return { ...base, query: text }
-  }
+  const onlyName = filters.inName && !filters.inDescription && !filters.inPrice
+  const onlyDesc = !filters.inName && filters.inDescription && !filters.inPrice
+  const onlyPrice = !filters.inName && !filters.inDescription && filters.inPrice
+
+  if (onlyName) return { ...base, query: text }
+  if (onlyDesc) return { ...base, query: text }
+  if (onlyPrice) return { ...base, query: text }
 
   return { ...base, query: text }
 }
@@ -80,33 +73,13 @@ export const fetchProductsPage = createAsyncThunk(
     const s = (thunkApi.getState() as RootState).products
     const search = buildSearchParams(s.filters)
 
-    const res = await fetchProducts({
+    return fetchProducts({
       page: s.page,
       limit: s.limit,
       sortBy: s.sortBy || undefined,
       sortOrder: s.sortDir,
       ...search,
     } as any)
-
-    return res
-  }
-)
-
-export const refreshProductsSilently = createAsyncThunk(
-  "products/refreshProductsSilently",
-  async (_: void, thunkApi) => {
-    const s = (thunkApi.getState() as RootState).products
-    const search = buildSearchParams(s.filters)
-
-    const res = await fetchProducts({
-      page: s.page,
-      limit: s.limit,
-      sortBy: s.sortBy || undefined,
-      sortOrder: s.sortDir,
-      ...search,
-    } as any)
-
-    return res
   }
 )
 
@@ -159,18 +132,6 @@ const productsSlice = createSlice({
         state.total = 0
         state.error = action.error?.message || "Error al cargar productos"
       })
-
-      .addCase(refreshProductsSilently.pending, state => {
-        state.refreshing = true
-      })
-      .addCase(refreshProductsSilently.fulfilled, (state, action) => {
-        state.refreshing = false
-        state.items = action.payload.items ?? []
-        state.total = action.payload.total ?? 0
-      })
-      .addCase(refreshProductsSilently.rejected, state => {
-        state.refreshing = false
-      })
   },
 })
 
@@ -178,3 +139,5 @@ export const { setPage, setLimit, setSort, setFilters, clearFilters } =
   productsSlice.actions
 
 export default productsSlice.reducer
+
+
