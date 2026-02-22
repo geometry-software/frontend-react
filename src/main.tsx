@@ -7,14 +7,14 @@ import {
   useRouteError,
 } from "react-router-dom"
 import { Provider } from "react-redux"
-import "./index.css"
-
 import { store } from "./app/store"
+import "./index.css"
 
 import LoginPage from "./pages/LoginPage"
 import SignupPage from "./pages/SignupPage"
 import AppPage from "./pages/AppPage"
 import ProductsPage from "./pages/ProductsPage"
+import ShippingPage from "./pages/ShippingPage"
 import RequireAuth from "./components/RequireAuth"
 
 function isAuthed() {
@@ -22,7 +22,9 @@ function isAuthed() {
 }
 
 function IndexGate() {
-  return isAuthed() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+  return isAuthed()
+    ? <Navigate to="/dashboard" replace />
+    : <Navigate to="/login" replace />
 }
 
 function NotFound() {
@@ -71,6 +73,14 @@ const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <ProductsPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "shipping",
+        element: (
+          <RequireAuth>
+            <ShippingPage />
           </RequireAuth>
         ),
       },
