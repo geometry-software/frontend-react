@@ -1,6 +1,12 @@
 import * as React from "react"
 import { NavLink } from "react-router-dom"
-import { GalleryVerticalEnd, LayoutDashboard, Users, Package2 } from "lucide-react"
+import {
+  GalleryVerticalEnd,
+  LayoutDashboard,
+  Users,
+  Package2,
+  Truck,
+} from "lucide-react"
 
 import {
   Sidebar,
@@ -16,6 +22,7 @@ const mainNav = [
   { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
   { title: "Users", to: "/users", icon: Users },
   { title: "Products", to: "/products", icon: Package2 },
+  { title: "Shipping", to: "/shipping", icon: Truck },
 ]
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
