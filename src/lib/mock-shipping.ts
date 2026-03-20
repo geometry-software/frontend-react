@@ -1,16 +1,10 @@
 import type { ShippingItem, ShippingStatus } from "../types/shipping"
+import { ymd } from "./utils"
 
 const KEY = "mock:shipping:items"
 
 function iso(d = new Date()) {
   return d.toISOString()
-}
-
-function ymd(d = new Date()) {
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const dd = String(d.getDate()).padStart(2, "0")
-  return `${yyyy}-${mm}-${dd}`
 }
 
 function seed(): ShippingItem[] {
@@ -108,9 +102,62 @@ function save(items: ShippingItem[]) {
 
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms))
 
-export async function listShipments() {
+export async function listShipments(params: {
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortDir?: "asc" | "desc"
+  text?: string
+  status?: string
+  dateFrom?: string
+  dateTo?: string
+} = {}) {
   await sleep(250)
-  return load().sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  let items = load()
+
+  // Filter by text (id, customer, destination)
+  if (params.text) {
+    const q = params.text.toLowerCase()
+    items = items.filter(
+      x =>
+        x.id.toLowerCase().includes(q) ||
+        x.customer.toLowerCase().includes(q) ||
+        x.destination.toLowerCase().includes(q)
+    )
+  }
+
+  // Filter by status
+  if (params.status && params.status !== "all" && params.status !== "") {
+    items = items.filter(x => x.status === params.status)
+  }
+
+  // Filter by date range (item.date is YYYY-MM-DD)
+  if (params.dateFrom) {
+    items = items.filter(x => x.date >= params.dateFrom!)
+  }
+  if (params.dateTo) {
+    items = items.filter(x => x.date <= params.dateTo!)
+  }
+
+  // Sort
+  const { sortBy = "createdAt", sortDir = "desc" } = params
+  items.sort((a, b) => {
+    const valA = (a as any)[sortBy] ?? ""
+    const valB = (b as any)[sortBy] ?? ""
+    if (valA < valB) return sortDir === "asc" ? -1 : 1
+    if (valA > valB) return sortDir === "asc" ? 1 : -1
+    return 0
+  })
+
+  // Paginate
+  const total = items.length
+  const page = params.page || 1
+  const limit = params.limit || 10
+  const start = (page - 1) * limit
+  const end = start + limit
+  const paged = items.slice(start, end)
+
+  return { items: paged, total }
 }
 
 export async function createShipment(dto: { customer: string; date: string; destination: string }) {

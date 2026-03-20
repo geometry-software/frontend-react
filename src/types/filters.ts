@@ -9,6 +9,13 @@ export type ProductsFilters = {
   createdAtTo: string
 }
 
+export type ShippingFilters = {
+  text: string
+  status: string 
+  dateFrom: string
+  dateTo: string
+}
+
 export type FilterProps<T> = {
   value: T
   onApply: (next: T) => void

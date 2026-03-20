@@ -30,7 +30,12 @@ import {
   addShipment,
   editShipment,
   removeShipment,
-  setShipmentStatus,
+  setShipmentStatusAction,
+  setPage,
+  setLimit,
+  setSort,
+  setFilters,
+  clearFilters,
 } from "../features/shipping/shippingSlice"
 import type { ShippingItem, ShippingStatus } from "../types/shipping"
 import { statusLabel, statusVariant } from "../lib/mock-shipping"
@@ -46,19 +51,15 @@ import {
   LineChart,
   Line,
 } from "recharts"
+import { ymd } from "../lib/utils"
+import ShippingFiltersSheet from "../components/shipping/shipping-filters-sheet"
 
 type FormMode = "create" | "edit"
 
-function ymd(d: Date) {
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const dd = String(d.getDate()).padStart(2, "0")
-  return `${yyyy}-${mm}-${dd}`
-}
-
 export default function ShippingPage() {
   const dispatch = useAppDispatch()
-  const { items, loading, error } = useAppSelector(s => s.shipping)
+  const { items, total, page, limit, sortBy, sortDir, filters, loading, error } =
+    useAppSelector(s => s.shipping)
 
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<FormMode>("create")
@@ -78,7 +79,7 @@ export default function ShippingPage() {
 
   useEffect(() => {
     dispatch(fetchShipments())
-  }, [dispatch])
+  }, [dispatch, page, limit, sortBy, sortDir, filters])
 
   const kpis = useMemo(() => {
     const today = ymd(new Date())
@@ -169,12 +170,12 @@ export default function ShippingPage() {
 
   async function saveTracking() {
     if (!trackItem) return
-    await dispatch(setShipmentStatus({ id: trackItem.id, status: trackStatus, note: trackNote.trim() || undefined }))
+    await dispatch(setShipmentStatusAction({ id: trackItem.id, status: trackStatus, note: trackNote.trim() || undefined }))
     setTrackOpen(false)
     setTrackItem(null)
   }
 
-  const columns: ColumnDef<ShippingItem>[] = [
+  const columns: ColumnDef<ShippingItem>[] = useMemo(() => [
     { key: "id", header: "ID", sortable: true, render: r => `#${r.id}` },
     { key: "customer", header: "Cliente", sortable: true },
     { key: "date", header: "Fecha", sortable: true },
@@ -214,7 +215,7 @@ export default function ShippingPage() {
         </div>
       ),
     },
-  ]
+  ], [])
 
   return (
     <DashboardLayout pageTitle="Shipping">
@@ -301,12 +302,25 @@ export default function ShippingPage() {
 
       <div className="mt-3">
         <DataTable<ShippingItem>
+          serverSide
           data={items}
+          total={total}
+          page={page}
+          pageSize={limit}
+          sort={{ key: sortBy, dir: sortDir }}
+          onPageChange={p => dispatch(setPage(p))}
+          onPageSizeChange={n => dispatch(setLimit(n))}
+          onSortChange={s => dispatch(setSort({ sortBy: s.key, sortDir: s.dir }))}
           columns={columns}
-          searchableKeys={["customer", "destination", "id"]}
-          searchPlaceholder="Buscar pedido..."
           emptyMessage="No hay pedidos"
           loading={loading}
+          toolbarRight={
+            <ShippingFiltersSheet
+              value={filters}
+              onApply={next => dispatch(setFilters(next))}
+              onClear={() => dispatch(clearFilters())}
+            />
+          }
         />
       </div>
 
@@ -324,7 +338,7 @@ export default function ShippingPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="ship-date">Fecha</Label>
+              <Label htmlFor="ship-date">Fecha de Entrega</Label>
               <Input id="ship-date" type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
 
@@ -364,7 +378,7 @@ export default function ShippingPage() {
                   <p className="text-sm">{trackItem.destination}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Fecha</p>
+                  <p className="text-xs text-muted-foreground">Fecha Estimada</p>
                   <p className="text-sm">{trackItem.date}</p>
                 </div>
               </div>
@@ -377,7 +391,7 @@ export default function ShippingPage() {
                       key={s}
                       type="button"
                       variant={trackStatus === s ? "default" : "outline"}
-                      className="cursor-pointer justify-start"
+                      className="cursor-pointer justify-start h-9 text-xs"
                       onClick={() => setTrackStatus(s)}
                     >
                       {statusLabel(s)}
@@ -387,20 +401,26 @@ export default function ShippingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="track-note">Nota (opcional)</Label>
+                <Label htmlFor="track-note">Nota de actualización (opcional)</Label>
                 <Input id="track-note" value={trackNote} onChange={e => setTrackNote(e.target.value)} />
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium">Historial</p>
-                <div className="max-h-[180px] overflow-auto rounded-md border p-3 space-y-2">
-                  {(trackItem.history || []).map((h, i) => (
-                    <div key={i} className="text-sm flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">{new Date(h.at).toLocaleString()}</span>
-                      <span className="font-medium">{statusLabel(h.status)}</span>
-                      <span className="text-muted-foreground">{h.note || ""}</span>
-                    </div>
-                  ))}
+                <p className="text-sm font-medium">Historial de Estados</p>
+                <div className="max-h-[180px] overflow-auto rounded-md border p-3 space-y-2 bg-muted/20">
+                  {(trackItem.history || []).length > 0 ? (
+                    (trackItem.history || []).map((h, i) => (
+                      <div key={i} className="text-[12px] flex flex-col border-b pb-2 last:border-0 last:pb-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-semibold text-primary">{statusLabel(h.status)}</span>
+                          <span className="text-muted-foreground">{new Date(h.at).toLocaleString()}</span>
+                        </div>
+                        {h.note && <span className="text-muted-foreground italic">"{h.note}"</span>}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No hay historial disponible</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -411,7 +431,7 @@ export default function ShippingPage() {
               Cerrar
             </Button>
             <Button type="button" className="cursor-pointer" onClick={saveTracking}>
-              Guardar
+              Guardar actualización
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -421,7 +441,7 @@ export default function ShippingPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar este pedido?</AlertDialogTitle>
-            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+            <AlertDialogDescription>Esta acción no se puede deshacer y borrará permanentemente el historial de este envío.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
@@ -434,7 +454,7 @@ export default function ShippingPage() {
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction className="cursor-pointer" onClick={confirmDelete}>
-              Eliminar
+              Eliminar permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

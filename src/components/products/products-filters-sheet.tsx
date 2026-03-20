@@ -13,27 +13,7 @@ import {
   SheetTrigger,
 } from "../ui/sheet"
 import type { FilterProps, ProductsFilters } from "../../types/filters"
-
-function isoStartOfDay(dateOnly: string) {
-  if (!dateOnly) return ""
-  const d = new Date(`${dateOnly}T00:00:00.000Z`)
-  if (Number.isNaN(d.getTime())) return ""
-  return d.toISOString()
-}
-
-function isoEndOfDay(dateOnly: string) {
-  if (!dateOnly) return ""
-  const d = new Date(`${dateOnly}T23:59:59.999Z`)
-  if (Number.isNaN(d.getTime())) return ""
-  return d.toISOString()
-}
-
-function toDateOnly(iso: string) {
-  if (!iso) return ""
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ""
-  return d.toISOString().slice(0, 10)
-}
+import { isoEndOfDay, isoStartOfDay, toDateOnly } from "../../lib/utils"
 
 export default function ProductsFiltersSheet({
   value,
@@ -99,57 +79,65 @@ export default function ProductsFiltersSheet({
       <SheetContent side="right" className="w-[360px] sm:w-[420px] p-0">
         <div className="h-full px-6 py-6">
           <SheetHeader className="text-left">
-            <SheetTitle className="text-lg font-semibold">Filter Options</SheetTitle>
+            <SheetTitle className="text-lg font-semibold">Opciones de Filtro</SheetTitle>
           </SheetHeader>
 
           <div className="mt-6 space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="prod-search">Search</Label>
+              <Label htmlFor="prod-search">Búsqueda</Label>
               <Input
                 id="prod-search"
                 value={text}
-                placeholder="Enter keywords..."
+                placeholder="Palabras clave..."
                 onChange={e => setText(e.target.value)}
               />
             </div>
 
             <div className="space-y-3 rounded-lg border p-4">
+              <Label className="text-xs text-muted-foreground uppercase font-bold">Buscar en:</Label>
               <div className="flex items-center gap-2">
-                <Checkbox checked={inName} onCheckedChange={v => setInName(Boolean(v))} />
-                <span className="text-sm">Name</span>
+                <Checkbox id="check-name" checked={inName} onCheckedChange={v => setInName(Boolean(v))} />
+                <Label htmlFor="check-name" className="text-sm font-normal cursor-pointer">Nombre</Label>
               </div>
 
               <div className="flex items-center gap-2">
                 <Checkbox
+                  id="check-desc"
                   checked={inDescription}
                   onCheckedChange={v => setInDescription(Boolean(v))}
                 />
-                <span className="text-sm">Description</span>
+                <Label htmlFor="check-desc" className="text-sm font-normal cursor-pointer">Descripción</Label>
               </div>
 
               <div className="flex items-center gap-2">
-                <Checkbox checked={inPrice} onCheckedChange={v => setInPrice(Boolean(v))} />
-                <span className="text-sm">Price</span>
+                <Checkbox id="check-price" checked={inPrice} onCheckedChange={v => setInPrice(Boolean(v))} />
+                <Label htmlFor="check-price" className="text-sm font-normal cursor-pointer">Precio</Label>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Si no marcas nada, la búsqueda será general (backend).
+              <p className="text-[11px] text-muted-foreground mt-2 italic">
+                * Si no marcas nada, la búsqueda será general.
               </p>
             </div>
 
             <div className="space-y-2 rounded-lg border p-4">
-              <Label>Created At</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="date"
-                  value={createdFrom}
-                  onChange={e => setCreatedFrom(e.target.value)}
-                />
-                <Input
-                  type="date"
-                  value={createdTo}
-                  onChange={e => setCreatedTo(e.target.value)}
-                />
+              <Label>Fecha de Creación</Label>
+              <div className="grid grid-cols-2 gap-3 mt-1">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase text-muted-foreground font-semibold">Desde</span>
+                  <Input
+                    type="date"
+                    value={createdFrom}
+                    onChange={e => setCreatedFrom(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase text-muted-foreground font-semibold">Hasta</span>
+                  <Input
+                    type="date"
+                    value={createdTo}
+                    onChange={e => setCreatedTo(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -158,15 +146,15 @@ export default function ProductsFiltersSheet({
             <Button
               type="button"
               variant="outline"
-              className="cursor-pointer"
+              className="px-6 cursor-pointer"
               onClick={handleClear}
               disabled={!showClear}
             >
-              Clear
+              Limpiar
             </Button>
 
-            <Button type="button" className="cursor-pointer" onClick={handleApply}>
-              Search
+            <Button type="button" className="px-6 cursor-pointer" onClick={handleApply}>
+              Aplicar
             </Button>
           </SheetFooter>
         </div>

@@ -39,20 +39,15 @@ import {
   setFilters,
   clearFilters,
 } from "../features/products/productsSlice"
+import { fmtDate } from "../lib/utils"
 
 type FormMode = "create" | "edit"
-
-function fmtDate(iso?: string) {
-  if (!iso) return "-"
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return "-"
-  return d.toLocaleDateString()
-}
 
 export default function ProductsPage() {
   const dispatch = useAppDispatch()
   const { items, total, page, limit, sortBy, sortDir, filters, loading, error } =
     useAppSelector(s => s.products)
+
 
   const [formOpen, setFormOpen] = useState(false)
   const [formMode, setFormMode] = useState<FormMode>("create")
@@ -63,18 +58,22 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
+  
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailProduct, setDetailProduct] = useState<ProductDto | null>(null)
 
+  
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<ProductDto | null>(null)
   const [deleting, setDeleting] = useState(false)
+
 
   useEffect(() => {
     dispatch(fetchProductsPage())
   }, [dispatch, page, limit, sortBy, sortDir, filters])
 
-  function openCreate() {
+
+  const openCreate = () => {
     setFormMode("create")
     setCurrentProduct(null)
     setName("")
@@ -84,7 +83,7 @@ export default function ProductsPage() {
     setFormOpen(true)
   }
 
-  function openEdit(p: ProductDto) {
+  const openEdit = (p: ProductDto) => {
     setFormMode("edit")
     setCurrentProduct(p)
     setName(p.name)
@@ -94,38 +93,28 @@ export default function ProductsPage() {
     setFormOpen(true)
   }
 
-  function openDetails(p: ProductDto) {
+  const openDetails = (p: ProductDto) => {
     setDetailProduct(p)
     setDetailOpen(true)
   }
 
-  function openDelete(p: ProductDto) {
+  const openDelete = (p: ProductDto) => {
     setDeleteTarget(p)
     setDeleteOpen(true)
   }
 
-  async function handleSubmitForm(e: React.FormEvent) {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
 
     const trimmedName = name.trim()
     const trimmedPrice = price.trim()
 
-    if (!trimmedName) {
-      setFormError("El nombre es obligatorio")
-      return
-    }
-
-    if (!trimmedPrice) {
-      setFormError("El precio es obligatorio")
-      return
-    }
+    if (!trimmedName) return setFormError("El nombre es obligatorio")
+    if (!trimmedPrice) return setFormError("El precio es obligatorio")
 
     const numericPrice = Number(trimmedPrice.replace(",", "."))
-    if (Number.isNaN(numericPrice)) {
-      setFormError("El precio debe ser numérico")
-      return
-    }
+    if (Number.isNaN(numericPrice)) return setFormError("El precio debe ser numérico")
 
     setSaving(true)
     try {
@@ -144,7 +133,6 @@ export default function ProductsPage() {
       }
 
       setFormOpen(false)
-      setCurrentProduct(null)
       dispatch(fetchProductsPage())
     } catch (err: any) {
       setFormError(err?.message ?? "No se pudo guardar el producto")
@@ -153,13 +141,12 @@ export default function ProductsPage() {
     }
   }
 
-  async function handleConfirmDelete() {
+  const handleConfirmDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await deleteProduct(deleteTarget._id)
       setDeleteOpen(false)
-      setDeleteTarget(null)
       dispatch(fetchProductsPage())
     } finally {
       setDeleting(false)
@@ -193,28 +180,13 @@ export default function ProductsPage() {
         render: row => (
           <div className="flex justify-end">
             <div className="min-w-[220px] flex justify-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => openDetails(row)}
-              >
+              <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => openDetails(row)}>
                 Detalle
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => openEdit(row)}
-              >
+              <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => openEdit(row)}>
                 Editar
               </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                className="cursor-pointer"
-                onClick={() => openDelete(row)}
-              >
+              <Button size="sm" variant="destructive" className="cursor-pointer" onClick={() => openDelete(row)}>
                 Eliminar
               </Button>
             </div>
@@ -227,7 +199,7 @@ export default function ProductsPage() {
 
   return (
     <DashboardLayout pageTitle="Productos">
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-100">{error}</p>}
 
       <DataTable<ProductDto>
         serverSide
@@ -240,7 +212,7 @@ export default function ProductsPage() {
         onPageSizeChange={n => dispatch(setLimit(n))}
         onSortChange={s => dispatch(setSort({ sortBy: s.key, sortDir: s.dir }))}
         columns={columns}
-        emptyMessage="No hay productos"
+        emptyMessage="No hay productos disponibles"
         loading={loading}
         toolbarRight={
           <div className="flex items-center gap-2">
@@ -256,6 +228,7 @@ export default function ProductsPage() {
         }
       />
 
+   
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent>
           <DialogHeader>
@@ -263,95 +236,82 @@ export default function ProductsPage() {
               {formMode === "create" ? "Agregar producto" : "Editar producto"}
             </DialogTitle>
             <DialogDescription>
-              Completa los campos y guarda los cambios.
+              Completa los detalles del producto a continuación.
             </DialogDescription>
           </DialogHeader>
           <form className="space-y-4" onSubmit={handleSubmitForm}>
             <div className="space-y-2">
               <Label htmlFor="prod-name">Nombre</Label>
-              <Input
-                id="prod-name"
-                value={name}
-                onChange={e => setName(e.target.value)}
-              />
+              <Input id="prod-name" value={name} onChange={e => setName(e.target.value)} placeholder="Ej. Material A" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prod-price">Precio</Label>
-              <Input
-                id="prod-price"
-                value={price}
-                onChange={e => setPrice(e.target.value)}
-              />
+              <Label htmlFor="prod-price">Precio ($)</Label>
+              <Input id="prod-price" value={price} onChange={e => setPrice(e.target.value)} placeholder="0.00" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prod-desc">Descripción</Label>
-              <Input
-                id="prod-desc"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-              />
+              <Label htmlFor="prod-desc">Descripción (opcional)</Label>
+              <Input id="prod-desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="Información adicional..." />
             </div>
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-sm text-red-600 font-medium">{formError}</p>}
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                className="cursor-pointer"
-                onClick={() => setFormOpen(false)}
-              >
+              <Button type="button" variant="outline" className="cursor-pointer" onClick={() => setFormOpen(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={saving} className="cursor-pointer">
-                {formMode === "create" ? "Crear" : "Guardar cambios"}
+                {saving ? "Guardando..." : formMode === "create" ? "Crear producto" : "Guardar cambios"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
+  
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Detalle del producto</DialogTitle>
-            <DialogDescription>Información básica del producto.</DialogDescription>
+            <DialogDescription>Información detallada registrada en el sistema.</DialogDescription>
           </DialogHeader>
           {detailProduct && (
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs text-muted-foreground">ID</p>
-                <p className="text-sm font-mono break-all">{detailProduct._id}</p>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-semibold text-muted-foreground">ID:</span>
+                <span className="col-span-3 text-sm font-mono bg-muted p-1 rounded">{detailProduct._id}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Nombre</p>
-                <p className="text-sm">{detailProduct.name}</p>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-semibold text-muted-foreground">Nombre:</span>
+                <span className="col-span-3 text-sm">{detailProduct.name}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Precio</p>
-                <p className="text-sm">${detailProduct.price.toFixed(2)}</p>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-semibold text-muted-foreground">Precio:</span>
+                <span className="col-span-3 text-sm font-medium text-green-600">${detailProduct.price.toFixed(2)}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Descripción</p>
-                <p className="text-sm">{detailProduct.description || "Sin descripción"}</p>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <span className="text-sm font-semibold text-muted-foreground">Descripción:</span>
+                <span className="col-span-3 text-sm">{detailProduct.description || "Sin descripción proporcionada"}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Actualizado</p>
-                <p className="text-sm">{fmtDate(detailProduct.updatedAt)}</p>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <span className="text-sm font-semibold text-muted-foreground">Actualizado:</span>
+                <span className="col-span-3 text-sm">{fmtDate(detailProduct.updatedAt)}</span>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button type="button" className="cursor-pointer" onClick={() => setDetailOpen(false)}>
+            <Button type="button" className="cursor-pointer w-full" onClick={() => setDetailOpen(false)}>
               Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar este producto?</AlertDialogTitle>
-            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará el producto <strong>{deleteTarget?.name}</strong>. No puedes deshacer esta operación.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
@@ -364,11 +324,11 @@ export default function ProductsPage() {
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
-              className="cursor-pointer"
+              className="cursor-pointer bg-red-600 hover:bg-red-700"
               onClick={handleConfirmDelete}
               disabled={deleting}
             >
-              {deleting ? "Eliminando..." : "Eliminar"}
+              {deleting ? "Eliminando..." : "Sí, eliminar producto"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
