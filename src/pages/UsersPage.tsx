@@ -49,6 +49,9 @@ import {
 } from "../features/users/usersSlice"
 import { fmtDate } from "../lib/utils"
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MIN_PASSWORD_LENGTH = 6
+
 const ROLE_VARIANT: Record<UserRole, "default" | "secondary" | "outline"> = {
   admin: "default",
   editor: "secondary",
@@ -125,9 +128,14 @@ export default function UsersPage() {
     if (!trimFirst) return setFormError("El nombre es obligatorio")
     if (!trimLast) return setFormError("El apellido es obligatorio")
     if (!trimEmail) return setFormError("El correo es obligatorio")
+    if (!EMAIL_REGEX.test(trimEmail))
+      return setFormError("El formato del correo no es válido")
 
     if (formMode === "create" && !trimPass) {
       return setFormError("La contraseña es obligatoria")
+    }
+    if (trimPass && trimPass.length < MIN_PASSWORD_LENGTH) {
+      return setFormError(`La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`)
     }
 
     setSaving(true)
@@ -201,6 +209,10 @@ export default function UsersPage() {
     if (!trimFirst) return setEditError("El nombre es obligatorio")
     if (!trimLast) return setEditError("El apellido es obligatorio")
     if (!trimEmail) return setEditError("El correo es obligatorio")
+    if (!EMAIL_REGEX.test(trimEmail))
+      return setEditError("El formato del correo no es válido")
+    if (trimPass && trimPass.length < MIN_PASSWORD_LENGTH)
+      return setEditError(`La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`)
 
     setEditSaving(true)
     try {
