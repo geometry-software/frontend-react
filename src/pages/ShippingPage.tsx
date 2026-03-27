@@ -38,7 +38,7 @@ import {
   clearFilters,
 } from "../features/shipping/shippingSlice"
 import type { ShippingItem, ShippingStatus } from "../types/shipping"
-import { statusLabel, statusVariant } from "../lib/mock-shipping"
+import { statusLabel, statusVariant } from "../lib/api-shipments"
 import { BarChart3, Clock, PackageCheck, Truck } from "lucide-react"
 import {
   ResponsiveContainer,
@@ -413,7 +413,7 @@ export default function ShippingPage() {
                       <div key={i} className="text-[12px] flex flex-col border-b pb-2 last:border-0 last:pb-0">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-semibold text-primary">{statusLabel(h.status)}</span>
-                          <span className="text-muted-foreground">{new Date(h.at).toLocaleString()}</span>
+                          <span className="text-muted-foreground">{new Date((h as any).changedAt || h.at).toLocaleString()}</span>
                         </div>
                         {h.note && <span className="text-muted-foreground italic">"{h.note}"</span>}
                       </div>
