@@ -15,6 +15,7 @@ import SignupPage from "./pages/SignupPage"
 import AppPage from "./pages/AppPage"
 import ProductsPage from "./pages/ProductsPage"
 import ShippingPage from "./pages/ShippingPage"
+import UsersPage from "./pages/UsersPage"
 import RequireAuth from "./components/RequireAuth"
 
 function isAuthed() {
@@ -81,6 +82,14 @@ const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <ShippingPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: "users",
+        element: (
+          <RequireAuth>
+            <UsersPage />
           </RequireAuth>
         ),
       },
