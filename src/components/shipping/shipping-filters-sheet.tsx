@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "../ui/select"
 import type { FilterProps, ShippingFilters } from "../../types/filters"
-import { statusLabel } from "../../lib/mock-shipping"
+import { statusLabel } from "../../lib/api-shipments"
 import type { ShippingStatus } from "../../types/shipping"
 
 export default function ShippingFiltersSheet({
@@ -31,31 +31,31 @@ export default function ShippingFiltersSheet({
 
   const [text, setText] = useState(value.text ?? "")
   const [status, setStatus] = useState(value.status ?? "all")
-  const [dateFrom, setDateFrom] = useState(value.dateFrom ?? "")
-  const [dateTo, setDateTo] = useState(value.dateTo ?? "")
+  const [createdAtFrom, setCreatedAtFrom] = useState(value.createdAtFrom ?? "")
+  const [createdAtTo, setCreatedAtTo] = useState(value.createdAtTo ?? "")
 
   useEffect(() => {
     setText(value.text ?? "")
     setStatus(value.status ?? "all")
-    setDateFrom(value.dateFrom ?? "")
-    setDateTo(value.dateTo ?? "")
+    setCreatedAtFrom(value.createdAtFrom ?? "")
+    setCreatedAtTo(value.createdAtTo ?? "")
   }, [value])
 
   const showClear = useMemo(() => {
     return (
       !!text.trim() ||
       status !== "all" ||
-      !!dateFrom ||
-      !!dateTo
+      !!createdAtFrom ||
+      !!createdAtTo
     )
-  }, [text, status, dateFrom, dateTo])
+  }, [text, status, createdAtFrom, createdAtTo])
 
   function handleApply() {
     onApply({
       text: text.trim(),
       status,
-      dateFrom,
-      dateTo,
+      createdAtFrom,
+      createdAtTo,
     })
     setOpen(false)
   }
@@ -110,22 +110,22 @@ export default function ShippingFiltersSheet({
             </div>
 
             <div className="space-y-2 rounded-lg border p-4">
-              <Label>Rango de Fecha de Entrega</Label>
+              <Label>Rango de Fecha de Registro</Label>
               <div className="grid grid-cols-2 gap-3 mt-2">
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase text-muted-foreground font-semibold">Desde</span>
                   <Input
                     type="date"
-                    value={dateFrom}
-                    onChange={e => setDateFrom(e.target.value)}
+                    value={createdAtFrom}
+                    onChange={e => setCreatedAtFrom(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] uppercase text-muted-foreground font-semibold">Hasta</span>
                   <Input
                     type="date"
-                    value={dateTo}
-                    onChange={e => setDateTo(e.target.value)}
+                    value={createdAtTo}
+                    onChange={e => setCreatedAtTo(e.target.value)}
                   />
                 </div>
               </div>

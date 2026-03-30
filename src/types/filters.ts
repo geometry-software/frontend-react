@@ -12,8 +12,8 @@ export type ProductsFilters = {
 export type ShippingFilters = {
   text: string
   status: string 
-  dateFrom: string
-  dateTo: string
+  createdAtFrom: string
+  createdAtTo: string
 }
 
 export type FilterProps<T> = {

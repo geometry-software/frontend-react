@@ -9,7 +9,7 @@ import {
   updateShipment,
   deleteShipment,
   updateShipmentStatus,
-} from "../../lib/mock-shipping"
+} from "../../lib/api-shipments"
 
 type ShippingState = {
   items: ShippingItem[]
@@ -33,8 +33,8 @@ const initialState: ShippingState = {
   filters: {
     text: "",
     status: "all",
-    dateFrom: "",
-    dateTo: "",
+    createdAtFrom: "",
+    createdAtTo: "",
   },
   loading: false,
   error: null,
@@ -51,8 +51,8 @@ export const fetchShipments = createAsyncThunk(
       sortDir: s.sortDir,
       text: s.filters.text,
       status: s.filters.status,
-      dateFrom: s.filters.dateFrom,
-      dateTo: s.filters.dateTo,
+      createdAtFrom: s.filters.createdAtFrom,
+      createdAtTo: s.filters.createdAtTo,
     })
   }
 )
@@ -114,8 +114,8 @@ const shippingSlice = createSlice({
       state.filters = {
         text: "",
         status: "all",
-        dateFrom: "",
-        dateTo: "",
+        createdAtFrom: "",
+        createdAtTo: "",
       }
       state.page = 1
     },
