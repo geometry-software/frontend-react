@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useEffect, useState } from "react"
 import { NavLink } from "react-router-dom"
 import {
   GalleryVerticalEnd,
@@ -6,6 +7,7 @@ import {
   Users,
   Package2,
   Truck,
+  User,
 } from "lucide-react"
 
 import {
@@ -17,6 +19,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "../components/ui/sidebar"
+import { apiGetMe } from "../lib/api-auth"
 
 const mainNav = [
   { title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -26,6 +29,22 @@ const mainNav = [
 ]
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const [role, setRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    apiGetMe()
+      .then(me => setRole(me.role ?? "user"))
+      .catch(() => setRole(null))
+  }, [])
+
+  const filteredNav = mainNav.filter(item => {
+    if (item.title === "Users") return role === "admin"
+    return true
+  })
+
+ 
+  const fullNav = [...filteredNav, { title: "Mi Perfil", to: "/profile", icon: User }]
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -48,7 +67,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent>
         <SidebarMenu>
-          {mainNav.map((item) => (
+          {fullNav.map((item) => (
             <SidebarMenuItem key={item.to}>
               <SidebarMenuButton asChild>
                 <NavLink

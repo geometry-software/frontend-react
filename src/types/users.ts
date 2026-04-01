@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "user" | "editor"
+export type UserRole = "admin" | "user"
 
 export type UserDto = {
   _id: string

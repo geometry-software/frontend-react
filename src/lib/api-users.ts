@@ -12,7 +12,7 @@ const BASE =
   import.meta.env.VITE_API_URL?.replace(/\/+$/, "") ||
   ""
 
-const USE_MOCK = true 
+const USE_MOCK = true
 
 
 const MOCK_USERS: UserDto[] = [
@@ -30,7 +30,7 @@ const MOCK_USERS: UserDto[] = [
     firstName: "María",
     lastName: "González",
     email: "maria@sevenfox.com",
-    role: "editor",
+    role: "user",
     createdAt: "2025-12-01T08:00:00.000Z",
     updatedAt: "2026-02-28T09:30:00.000Z",
   },
@@ -57,7 +57,7 @@ const MOCK_USERS: UserDto[] = [
     firstName: "Pedro",
     lastName: "Hernández",
     email: "pedro@sevenfox.com",
-    role: "editor",
+    role: "user",
     createdAt: "2026-02-20T07:30:00.000Z",
     updatedAt: "2026-03-18T13:00:00.000Z",
   },
@@ -116,7 +116,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   let data: any = null
   try {
     data = await res.json()
-  } catch {}
+  } catch { }
 
   if (!res.ok) {
     const msg = data?.message || data?.error || "Error de red"
@@ -306,6 +306,5 @@ export async function getUser(id: string): Promise<UserDto> {
 
 export const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "admin", label: "Administrador" },
-  { value: "editor", label: "Editor" },
   { value: "user", label: "Usuario" },
 ]

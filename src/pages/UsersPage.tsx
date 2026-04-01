@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import DashboardLayout from "../components/dashboard-layout"
 import { Button } from "../components/ui/button"
 import { DataTable, type ColumnDef } from "../components/data-table"
+import { apiGetMe } from "../lib/api-auth"
 import {
   createUser,
   updateUser,
@@ -52,15 +53,13 @@ import { fmtDate } from "../lib/utils"
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_PASSWORD_LENGTH = 6
 
-const ROLE_VARIANT: Record<UserRole, "default" | "secondary" | "outline"> = {
+const ROLE_VARIANT: Record<Exclude<UserRole, "editor">, "default" | "outline"> = {
   admin: "default",
-  editor: "secondary",
   user: "outline",
 }
 
-const ROLE_LABEL: Record<UserRole, string> = {
+const ROLE_LABEL: Record<Exclude<UserRole, "editor">, string> = {
   admin: "Administrador",
-  editor: "Editor",
   user: "Usuario",
 }
 
@@ -81,7 +80,7 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  
+
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailUser, setDetailUser] = useState<UserDto | null>(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -93,15 +92,39 @@ export default function UsersPage() {
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
-  
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  
+
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+
   useEffect(() => {
-    dispatch(fetchUsersPage())
+    apiGetMe().then(me => {
+      if (me.role === "admin") {
+        setIsAdmin(true)
+        dispatch(fetchUsersPage())
+      } else {
+        setIsAdmin(false)
+      }
+    }).catch(() => setIsAdmin(false))
   }, [dispatch, page, limit, sortBy, sortDir, filters])
+
+  if (isAdmin === false) {
+    return (
+      <DashboardLayout pageTitle="Acceso Denegado">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center space-y-3">
+            <h1 className="text-2xl font-semibold">Acceso Denegado</h1>
+            <p className="text-muted-foreground">No tienes permisos para ver esta sección.</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (isAdmin === null) return null
 
 
   const openCreate = () => {
@@ -167,12 +190,12 @@ export default function UsersPage() {
     }
   }
 
- 
+
   const openDetails = (u: UserDto) => {
     setDetailUser(u)
     setIsEditing(false)
     setEditError(null)
-    
+
     setEditFirstName(u.firstName)
     setEditLastName(u.lastName)
     setEditEmail(u.email)
@@ -232,7 +255,7 @@ export default function UsersPage() {
     }
   }
 
-  
+
   const openDelete = (u: UserDto) => {
     setDeleteTarget(u)
     setDeleteOpen(true)
@@ -496,7 +519,7 @@ export default function UsersPage() {
                 />
               </div>
 
-       
+
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Rol</Label>
                 {isEditing ? (
@@ -524,7 +547,7 @@ export default function UsersPage() {
                 )}
               </div>
 
-       
+
               {isEditing && (
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">
@@ -542,7 +565,7 @@ export default function UsersPage() {
                 </div>
               )}
 
-           
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">

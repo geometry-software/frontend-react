@@ -16,7 +16,7 @@ function pickToken(obj: any): string | null {
     obj.accessToken ||
     obj.token ||
     obj.jwt ||
-    obj.access_token || 
+    obj.access_token ||
     (typeof obj === "string" ? obj : null)
   )
 }
@@ -38,7 +38,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
     if (ctype.includes("application/json")) {
       data = await res.json()
     } else {
-     
+
       const text = await res.text()
       data = text || null
     }
@@ -47,7 +47,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    
+
     const msg = (data && (data.message || data.error)) || "Error de red"
     throw new Error(Array.isArray(msg) ? msg[0] : String(msg))
   }
@@ -84,7 +84,7 @@ export function apiLogout() {
   setToken(null)
 }
 
-export async function apiGetMe(): Promise<{ id?: string | number; email: string }> {
+export async function apiGetMe(): Promise<{ id?: string | number; email: string; role?: string }> {
   const token = getToken()
   if (!token) throw new Error("No autenticado")
 
@@ -93,10 +93,10 @@ export async function apiGetMe(): Promise<{ id?: string | number; email: string 
     const [, payload] = token.split(".")
     if (payload) {
       const obj = JSON.parse(atob(payload))
-      return { id: obj.sub ?? obj.id, email: obj.email }
+      return { id: obj.sub ?? obj.id, email: obj.email, role: obj.role }
     }
-  } catch {}
-  return { email: "usuario@autenticado" }
+  } catch { }
+  return { email: "usuario@autenticado", role: "user" }
 }
 
 export function authHeader(): Record<string, string> {
