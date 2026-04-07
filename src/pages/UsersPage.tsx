@@ -2,17 +2,14 @@ import { useEffect, useMemo, useState } from "react"
 import DashboardLayout from "../components/dashboard-layout"
 import { Button } from "../components/ui/button"
 import { DataTable, type ColumnDef } from "../components/data-table"
-import { apiGetMe } from "../lib/api-auth"
 import {
   createUser,
   updateUser,
   deleteUser,
-  ROLE_OPTIONS,
 } from "../lib/api-users"
-import type { UserDto, UserRole } from "../types/users"
+import type { UserDto } from "../types/users"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { Badge } from "../components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -21,13 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select"
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,15 +44,7 @@ import { fmtDate } from "../lib/utils"
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_PASSWORD_LENGTH = 6
 
-const ROLE_VARIANT: Record<Exclude<UserRole, "editor">, "default" | "outline"> = {
-  admin: "default",
-  user: "outline",
-}
 
-const ROLE_LABEL: Record<Exclude<UserRole, "editor">, string> = {
-  admin: "Administrador",
-  user: "Usuario",
-}
 
 export default function UsersPage() {
   const dispatch = useAppDispatch()
@@ -76,7 +59,6 @@ export default function UsersPage() {
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<UserRole>("user")
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -87,7 +69,6 @@ export default function UsersPage() {
   const [editFirstName, setEditFirstName] = useState("")
   const [editLastName, setEditLastName] = useState("")
   const [editEmail, setEditEmail] = useState("")
-  const [editRole, setEditRole] = useState<UserRole>("user")
   const [editPassword, setEditPassword] = useState("")
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
@@ -97,34 +78,9 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
-
   useEffect(() => {
-    apiGetMe().then(me => {
-      if (me.role === "admin") {
-        setIsAdmin(true)
-        dispatch(fetchUsersPage())
-      } else {
-        setIsAdmin(false)
-      }
-    }).catch(() => setIsAdmin(false))
+    dispatch(fetchUsersPage())
   }, [dispatch, page, limit, sortBy, sortDir, filters])
-
-  if (isAdmin === false) {
-    return (
-      <DashboardLayout pageTitle="Acceso Denegado">
-        <div className="flex flex-1 items-center justify-center">
-          <div className="text-center space-y-3">
-            <h1 className="text-2xl font-semibold">Acceso Denegado</h1>
-            <p className="text-muted-foreground">No tienes permisos para ver esta sección.</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  if (isAdmin === null) return null
 
 
   const openCreate = () => {
@@ -134,7 +90,6 @@ export default function UsersPage() {
     setLastName("")
     setEmail("")
     setPassword("")
-    setRole("user")
     setFormError(null)
     setFormOpen(true)
   }
@@ -169,14 +124,12 @@ export default function UsersPage() {
           lastName: trimLast,
           email: trimEmail,
           password: trimPass,
-          role,
         })
       } else if (formMode === "edit" && currentUser) {
         await updateUser(currentUser._id, {
           firstName: trimFirst,
           lastName: trimLast,
           email: trimEmail,
-          role,
           ...(trimPass ? { password: trimPass } : {}),
         })
       }
@@ -199,7 +152,6 @@ export default function UsersPage() {
     setEditFirstName(u.firstName)
     setEditLastName(u.lastName)
     setEditEmail(u.email)
-    setEditRole(u.role)
     setEditPassword("")
     setDetailOpen(true)
   }
@@ -209,7 +161,6 @@ export default function UsersPage() {
     setEditFirstName(detailUser.firstName)
     setEditLastName(detailUser.lastName)
     setEditEmail(detailUser.email)
-    setEditRole(detailUser.role)
     setEditPassword("")
     setEditError(null)
     setIsEditing(true)
@@ -243,7 +194,6 @@ export default function UsersPage() {
         firstName: trimFirst,
         lastName: trimLast,
         email: trimEmail,
-        role: editRole,
         ...(trimPass ? { password: trimPass } : {}),
       })
       setDetailOpen(false)
@@ -283,16 +233,7 @@ export default function UsersPage() {
         render: (row) => `${row.firstName} ${row.lastName}`,
       },
       { key: "email", header: "Correo", sortable: true },
-      {
-        key: "role",
-        header: "Rol",
-        sortable: true,
-        render: (row) => (
-          <Badge variant={ROLE_VARIANT[row.role] ?? "outline"}>
-            {ROLE_LABEL[row.role] ?? row.role}
-          </Badge>
-        ),
-      },
+
       {
         key: "createdAt",
         header: "Registrado",
@@ -419,21 +360,7 @@ export default function UsersPage() {
                 placeholder="••••••••"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
-                <SelectTrigger className="cursor-pointer">
-                  <SelectValue placeholder="Seleccionar rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
             {formError && (
               <p className="text-sm text-red-600 font-medium">{formError}</p>
             )}
@@ -520,32 +447,7 @@ export default function UsersPage() {
               </div>
 
 
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Rol</Label>
-                {isEditing ? (
-                  <Select
-                    value={editRole}
-                    onValueChange={(v) => setEditRole(v as UserRole)}
-                  >
-                    <SelectTrigger className="cursor-pointer">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={ROLE_LABEL[detailUser.role] ?? detailUser.role}
-                    disabled
-                    className="bg-muted"
-                  />
-                )}
-              </div>
+
 
 
               {isEditing && (

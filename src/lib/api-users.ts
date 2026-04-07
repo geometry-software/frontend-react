@@ -1,7 +1,6 @@
 import { authHeader } from "./api-auth"
 import type {
   UserDto,
-  UserRole,
   CreateUserDto,
   UpdateUserDto,
   UsersQuery,
@@ -14,23 +13,20 @@ const BASE =
 
 const USE_MOCK = true
 
-
 const MOCK_USERS: UserDto[] = [
   {
     _id: "usr-001",
     firstName: "Carlos",
     lastName: "Martínez",
     email: "carlos@sevenfox.com",
-    role: "admin",
     createdAt: "2025-11-15T10:30:00.000Z",
     updatedAt: "2026-03-20T14:00:00.000Z",
   },
   {
     _id: "usr-002",
-    firstName: "María",
+    firstName: "Maria",
     lastName: "González",
     email: "maria@sevenfox.com",
-    role: "user",
     createdAt: "2025-12-01T08:00:00.000Z",
     updatedAt: "2026-02-28T09:30:00.000Z",
   },
@@ -39,7 +35,6 @@ const MOCK_USERS: UserDto[] = [
     firstName: "José",
     lastName: "Rodríguez",
     email: "jose@sevenfox.com",
-    role: "user",
     createdAt: "2026-01-10T12:15:00.000Z",
     updatedAt: "2026-03-10T16:45:00.000Z",
   },
@@ -48,7 +43,6 @@ const MOCK_USERS: UserDto[] = [
     firstName: "Ana",
     lastName: "López",
     email: "ana@sevenfox.com",
-    role: "user",
     createdAt: "2026-02-05T09:00:00.000Z",
     updatedAt: "2026-03-15T11:20:00.000Z",
   },
@@ -57,7 +51,6 @@ const MOCK_USERS: UserDto[] = [
     firstName: "Pedro",
     lastName: "Hernández",
     email: "pedro@sevenfox.com",
-    role: "user",
     createdAt: "2026-02-20T07:30:00.000Z",
     updatedAt: "2026-03-18T13:00:00.000Z",
   },
@@ -66,7 +59,6 @@ const MOCK_USERS: UserDto[] = [
     firstName: "Laura",
     lastName: "Díaz",
     email: "laura@sevenfox.com",
-    role: "user",
     createdAt: "2026-03-01T14:00:00.000Z",
     updatedAt: "2026-03-25T10:00:00.000Z",
   },
@@ -75,7 +67,6 @@ const MOCK_USERS: UserDto[] = [
     firstName: "Miguel",
     lastName: "Torres",
     email: "miguel@sevenfox.com",
-    role: "admin",
     createdAt: "2026-01-25T16:00:00.000Z",
     updatedAt: "2026-03-22T08:45:00.000Z",
   },
@@ -84,7 +75,6 @@ const MOCK_USERS: UserDto[] = [
     firstName: "Sofía",
     lastName: "Ramírez",
     email: "sofia@sevenfox.com",
-    role: "user",
     createdAt: "2026-03-05T11:30:00.000Z",
     updatedAt: "2026-03-26T15:10:00.000Z",
   },
@@ -119,6 +109,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   } catch { }
 
   if (!res.ok) {
+    console.error(`Fetch API Error (${res.status}):`, data)
     const msg = data?.message || data?.error || "Error de red"
     throw new Error(Array.isArray(msg) ? msg[0] : String(msg))
   }
@@ -163,9 +154,7 @@ async function mockFetchUsers(
   query: UsersQuery
 ): Promise<{ items: UserDto[]; total: number }> {
   await delay()
-
   let filtered = [...mockDb]
-
 
   if (query.query) {
     const q = query.query.toLowerCase()
@@ -175,11 +164,6 @@ async function mockFetchUsers(
         u.lastName.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q)
     )
-  }
-
-
-  if (query.role) {
-    filtered = filtered.filter((u) => u.role === query.role)
   }
 
   if (query.createdAtFrom) {
@@ -210,7 +194,6 @@ async function mockFetchUsers(
   const limit = query.limit ?? 10
   const start = (page - 1) * limit
   const items = filtered.slice(start, start + limit)
-
   return { items, total }
 }
 
@@ -222,7 +205,6 @@ async function mockCreateUser(dto: CreateUserDto): Promise<UserDto> {
     firstName: dto.firstName,
     lastName: dto.lastName,
     email: dto.email,
-    role: dto.role,
     createdAt: now,
     updatedAt: now,
   }
@@ -236,7 +218,20 @@ async function mockUpdateUser(
 ): Promise<UserDto> {
   await delay()
   const idx = mockDb.findIndex((u) => u._id === id)
-  if (idx === -1) throw new Error("Usuario no encontrado")
+  if (idx === -1) {
+  
+    const now = new Date().toISOString()
+    const newUser: UserDto = {
+        _id: id,
+        firstName: dto.firstName || "Usuario",
+        lastName: dto.lastName || "Real",
+        email: dto.email || "correo@ejemplo.com",
+        createdAt: now,
+        updatedAt: now
+    }
+    mockDb.push(newUser)
+    return newUser
+  }
   const updated: UserDto = {
     ...mockDb[idx],
     ...dto,
@@ -257,7 +252,17 @@ async function mockDeleteUser(id: string): Promise<{ ok: boolean }> {
 async function mockGetUser(id: string): Promise<UserDto> {
   await delay()
   const user = mockDb.find((u) => u._id === id)
-  if (!user) throw new Error("Usuario no encontrado")
+  if (!user) {
+     
+      return {
+          _id: id,
+          firstName: "Usuario",
+          lastName: "Backend",
+          email: "usuario@ejemplo.com",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+      }
+  }
   return { ...user }
 }
 
@@ -265,16 +270,14 @@ export async function fetchUsers(
   query: UsersQuery
 ): Promise<{ items: UserDto[]; total: number }> {
   if (USE_MOCK) return mockFetchUsers(query)
-
   const qs = buildQueryString(query)
-  const raw = await jsonFetch<any>(`/api/users${qs}`, { method: "GET" })
+  const raw = await jsonFetch<any>(`/users${qs}`, { method: "GET" })
   return normalizeListResponse(raw)
 }
 
 export async function createUser(dto: CreateUserDto): Promise<UserDto> {
   if (USE_MOCK) return mockCreateUser(dto)
-
-  return jsonFetch<UserDto>("/api/users", {
+  return jsonFetch<UserDto>("/users", {
     method: "POST",
     body: JSON.stringify(dto),
   })
@@ -285,8 +288,7 @@ export async function updateUser(
   dto: UpdateUserDto
 ): Promise<UserDto> {
   if (USE_MOCK) return mockUpdateUser(id, dto)
-
-  return jsonFetch<UserDto>(`/api/users/${id}`, {
+  return jsonFetch<UserDto>(`/users/${id}`, {
     method: "PATCH",
     body: JSON.stringify(dto),
   })
@@ -294,17 +296,10 @@ export async function updateUser(
 
 export async function deleteUser(id: string): Promise<{ ok?: boolean }> {
   if (USE_MOCK) return mockDeleteUser(id)
-
-  return jsonFetch<{ ok?: boolean }>(`/api/users/${id}`, { method: "DELETE" })
+  return jsonFetch<{ ok?: boolean }>(`/users/${id}`, { method: "DELETE" })
 }
 
 export async function getUser(id: string): Promise<UserDto> {
   if (USE_MOCK) return mockGetUser(id)
-
-  return jsonFetch<UserDto>(`/api/users/${id}`, { method: "GET" })
+  return jsonFetch<UserDto>(`/users/${id}`, { method: "GET" })
 }
-
-export const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
-  { value: "admin", label: "Administrador" },
-  { value: "user", label: "Usuario" },
-]

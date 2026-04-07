@@ -19,12 +19,18 @@ export default function ProfilePage() {
   const [ok, setOk] = useState(false)
 
   useEffect(() => {
+    console.log("Iniciando carga de perfil...")
     apiGetMe()
       .then((me) => {
-        if (!me.id) throw new Error("No user ID found")
+        console.log("apiGetMe devolvió:", me)
+        if (!me.id) {
+          console.error("No se encontró ID en me:", me)
+          throw new Error("No user ID found")
+        }
         return getUser(String(me.id))
       })
       .then((u) => {
+        console.log("getUser devolvió:", u)
         setUser(u)
         setFirstName(u.firstName)
         setLastName(u.lastName)
@@ -32,8 +38,8 @@ export default function ProfilePage() {
         setLoading(false)
       })
       .catch((err) => {
-        console.error(err)
-        setError("Error al cargar el perfil")
+        console.error("Error en la cadena de carga de perfil:", err)
+        setError(`Error al cargar el perfil: ${err.message || String(err)}`)
         setLoading(false)
       })
   }, [])

@@ -5,7 +5,6 @@ export type UserDto = {
   firstName: string
   lastName: string
   email: string
-  role: UserRole
   createdAt?: string
   updatedAt?: string
 }
@@ -15,7 +14,6 @@ export type CreateUserDto = {
   lastName: string
   email: string
   password: string
-  role: UserRole
 }
 
 export type UpdateUserDto = Partial<Omit<CreateUserDto, "password">> & {
@@ -24,14 +22,12 @@ export type UpdateUserDto = Partial<Omit<CreateUserDto, "password">> & {
 
 export type UsersFilters = {
   text: string
-  role: string
   createdAtFrom: string
   createdAtTo: string
 }
 
 export type UsersQuery = {
   query?: string
-  role?: string
   createdAtFrom?: string
   createdAtTo?: string
   sortBy?: string
