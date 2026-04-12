@@ -6,12 +6,10 @@ import {
   createUser,
   updateUser,
   deleteUser,
-  ROLE_OPTIONS,
 } from "../lib/api-users"
-import type { UserDto, UserRole } from "../types/users"
+import type { UserDto } from "../types/users"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { Badge } from "../components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -20,13 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select"
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,17 +44,7 @@ import { fmtDate } from "../lib/utils"
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_PASSWORD_LENGTH = 6
 
-const ROLE_VARIANT: Record<UserRole, "default" | "secondary" | "outline"> = {
-  admin: "default",
-  editor: "secondary",
-  user: "outline",
-}
 
-const ROLE_LABEL: Record<UserRole, string> = {
-  admin: "Administrador",
-  editor: "Editor",
-  user: "Usuario",
-}
 
 export default function UsersPage() {
   const dispatch = useAppDispatch()
@@ -77,28 +59,25 @@ export default function UsersPage() {
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<UserRole>("user")
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  
+
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailUser, setDetailUser] = useState<UserDto | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editFirstName, setEditFirstName] = useState("")
   const [editLastName, setEditLastName] = useState("")
   const [editEmail, setEditEmail] = useState("")
-  const [editRole, setEditRole] = useState<UserRole>("user")
   const [editPassword, setEditPassword] = useState("")
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
-  
+
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  
   useEffect(() => {
     dispatch(fetchUsersPage())
   }, [dispatch, page, limit, sortBy, sortDir, filters])
@@ -111,7 +90,6 @@ export default function UsersPage() {
     setLastName("")
     setEmail("")
     setPassword("")
-    setRole("user")
     setFormError(null)
     setFormOpen(true)
   }
@@ -146,14 +124,12 @@ export default function UsersPage() {
           lastName: trimLast,
           email: trimEmail,
           password: trimPass,
-          role,
         })
       } else if (formMode === "edit" && currentUser) {
         await updateUser(currentUser._id, {
           firstName: trimFirst,
           lastName: trimLast,
           email: trimEmail,
-          role,
           ...(trimPass ? { password: trimPass } : {}),
         })
       }
@@ -167,16 +143,15 @@ export default function UsersPage() {
     }
   }
 
- 
+
   const openDetails = (u: UserDto) => {
     setDetailUser(u)
     setIsEditing(false)
     setEditError(null)
-    
+
     setEditFirstName(u.firstName)
     setEditLastName(u.lastName)
     setEditEmail(u.email)
-    setEditRole(u.role)
     setEditPassword("")
     setDetailOpen(true)
   }
@@ -186,7 +161,6 @@ export default function UsersPage() {
     setEditFirstName(detailUser.firstName)
     setEditLastName(detailUser.lastName)
     setEditEmail(detailUser.email)
-    setEditRole(detailUser.role)
     setEditPassword("")
     setEditError(null)
     setIsEditing(true)
@@ -220,7 +194,6 @@ export default function UsersPage() {
         firstName: trimFirst,
         lastName: trimLast,
         email: trimEmail,
-        role: editRole,
         ...(trimPass ? { password: trimPass } : {}),
       })
       setDetailOpen(false)
@@ -232,7 +205,7 @@ export default function UsersPage() {
     }
   }
 
-  
+
   const openDelete = (u: UserDto) => {
     setDeleteTarget(u)
     setDeleteOpen(true)
@@ -260,16 +233,7 @@ export default function UsersPage() {
         render: (row) => `${row.firstName} ${row.lastName}`,
       },
       { key: "email", header: "Correo", sortable: true },
-      {
-        key: "role",
-        header: "Rol",
-        sortable: true,
-        render: (row) => (
-          <Badge variant={ROLE_VARIANT[row.role] ?? "outline"}>
-            {ROLE_LABEL[row.role] ?? row.role}
-          </Badge>
-        ),
-      },
+
       {
         key: "createdAt",
         header: "Registrado",
@@ -396,21 +360,7 @@ export default function UsersPage() {
                 placeholder="••••••••"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
-                <SelectTrigger className="cursor-pointer">
-                  <SelectValue placeholder="Seleccionar rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
             {formError && (
               <p className="text-sm text-red-600 font-medium">{formError}</p>
             )}
@@ -496,35 +446,10 @@ export default function UsersPage() {
                 />
               </div>
 
-       
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Rol</Label>
-                {isEditing ? (
-                  <Select
-                    value={editRole}
-                    onValueChange={(v) => setEditRole(v as UserRole)}
-                  >
-                    <SelectTrigger className="cursor-pointer">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={ROLE_LABEL[detailUser.role] ?? detailUser.role}
-                    disabled
-                    className="bg-muted"
-                  />
-                )}
-              </div>
 
-       
+
+
+
               {isEditing && (
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">
@@ -542,7 +467,7 @@ export default function UsersPage() {
                 </div>
               )}
 
-           
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">

@@ -16,7 +16,7 @@ function pickToken(obj: any): string | null {
     obj.accessToken ||
     obj.token ||
     obj.jwt ||
-    obj.access_token || 
+    obj.access_token ||
     (typeof obj === "string" ? obj : null)
   )
 }
@@ -38,7 +38,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
     if (ctype.includes("application/json")) {
       data = await res.json()
     } else {
-     
+
       const text = await res.text()
       data = text || null
     }
@@ -47,7 +47,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    
+
     const msg = (data && (data.message || data.error)) || "Error de red"
     throw new Error(Array.isArray(msg) ? msg[0] : String(msg))
   }
@@ -55,10 +55,10 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T
 }
 
-export async function apiRegister(email: string, password: string) {
+export async function apiRegister(firstName: string, lastName: string, email: string, password: string) {
   return jsonFetch("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ firstName, lastName, email, password }),
   })
 }
 
@@ -84,19 +84,23 @@ export function apiLogout() {
   setToken(null)
 }
 
-export async function apiGetMe(): Promise<{ id?: string | number; email: string }> {
+export async function apiGetMe(): Promise<{ id?: string | number; email: string; role?: string }> {
   const token = getToken()
   if (!token) throw new Error("No autenticado")
-
 
   try {
     const [, payload] = token.split(".")
     if (payload) {
-      const obj = JSON.parse(atob(payload))
-      return { id: obj.sub ?? obj.id, email: obj.email }
+      // Decode URL-safe base64
+      const base64 = payload.replace(/-/g, "+").replace(/_/g, "/")
+      const obj = JSON.parse(atob(base64))
+      console.log("apiGetMe result:", obj)
+      return { id: obj.sub ?? obj.id, email: obj.email, role: obj.role }
     }
-  } catch {}
-  return { email: "usuario@autenticado" }
+  } catch (err) {
+    console.error("Error parsing JWT in apiGetMe:", err)
+  }
+  return { email: "usuario@autenticado", role: "user" }
 }
 
 export function authHeader(): Record<string, string> {

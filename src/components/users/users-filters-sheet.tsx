@@ -11,15 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "../ui/sheet"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select"
 import type { UsersFilters } from "../../types/users"
-import { ROLE_OPTIONS } from "../../lib/api-users"
 import { isoEndOfDay, isoStartOfDay, toDateOnly } from "../../lib/utils"
 
 type UsersFiltersSheetProps = {
@@ -36,25 +28,22 @@ export default function UsersFiltersSheet({
   const [open, setOpen] = useState(false)
 
   const [text, setText] = useState(value.text ?? "")
-  const [role, setRole] = useState(value.role ?? "")
   const [createdFrom, setCreatedFrom] = useState("")
   const [createdTo, setCreatedTo] = useState("")
 
   useEffect(() => {
     setText(value.text ?? "")
-    setRole(value.role ?? "")
     setCreatedFrom(toDateOnly(value.createdAtFrom))
     setCreatedTo(toDateOnly(value.createdAtTo))
   }, [value])
 
   const showClear = useMemo(() => {
-    return !!text.trim() || !!role || !!createdFrom || !!createdTo
-  }, [text, role, createdFrom, createdTo])
+    return !!text.trim() || !!createdFrom || !!createdTo
+  }, [text, createdFrom, createdTo])
 
   function handleApply() {
     onApply({
       text: text.trim(),
-      role: role === "all" ? "" : role,
       createdAtFrom: isoStartOfDay(createdFrom),
       createdAtTo: isoEndOfDay(createdTo),
     })
@@ -95,22 +84,6 @@ export default function UsersFiltersSheet({
               />
             </div>
 
-            <div className="space-y-2 rounded-lg border p-4">
-              <Label>Rol</Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger className="cursor-pointer">
-                  <SelectValue placeholder="Todos los roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {ROLE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="space-y-2 rounded-lg border p-4">
               <Label>Fecha de Creación</Label>

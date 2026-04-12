@@ -6,6 +6,7 @@ import {
   Users,
   Package2,
   Truck,
+  User,
 } from "lucide-react"
 
 import {
@@ -26,6 +27,8 @@ const mainNav = [
 ]
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const fullNav = [...mainNav, { title: "Mi Perfil", to: "/profile", icon: User }]
+
   return (
     <Sidebar {...props}>
       <SidebarHeader>
@@ -48,7 +51,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent>
         <SidebarMenu>
-          {mainNav.map((item) => (
+          {fullNav.map((item) => (
             <SidebarMenuItem key={item.to}>
               <SidebarMenuButton asChild>
                 <NavLink
