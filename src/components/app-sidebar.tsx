@@ -40,7 +40,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   <GalleryVerticalEnd className="size-4" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-medium">SevenFox</span>
+                  <span className="font-medium">Geometry Frontend React</span>
                   <span className="text-xs text-muted-foreground">Panel</span>
                 </div>
               </NavLink>

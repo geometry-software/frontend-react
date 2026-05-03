@@ -67,7 +67,8 @@ export default function DashboardLayout({
           <div className="ml-auto flex items-center gap-3 px-4">
             {email && (
               <span className="text-sm text-muted-foreground">
-                Sesión: {email}
+                {/* Session: youremail@page.com */}
+                Session: {email}
               </span>
             )}
             <Button
@@ -76,7 +77,7 @@ export default function DashboardLayout({
               className="cursor-pointer"
               onClick={handleLogout}
             >
-              Cerrar sesión
+              Logout
             </Button>
           </div>
         </header>

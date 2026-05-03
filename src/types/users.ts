@@ -22,6 +22,7 @@ export type UpdateUserDto = Partial<Omit<CreateUserDto, "password">> & {
 
 export type UsersFilters = {
   text: string
+  role: string
   createdAtFrom: string
   createdAtTo: string
 }

@@ -44,6 +44,7 @@ export default function UsersFiltersSheet({
   function handleApply() {
     onApply({
       text: text.trim(),
+      role: '',
       createdAtFrom: isoStartOfDay(createdFrom),
       createdAtTo: isoEndOfDay(createdTo),
     })

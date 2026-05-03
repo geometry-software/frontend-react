@@ -7,7 +7,7 @@ export default function AppPage() {
         <div className="text-center space-y-3">
           <h1 className="text-2xl font-semibold">Bienvenido 🎉</h1>
           <p className="text-muted-foreground">
-            a SevenFox
+            a Frontend React
           </p>
         </div>
       </div>
